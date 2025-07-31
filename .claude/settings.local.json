@@ -1,0 +1,10 @@
+{
+  "enabledMcpjsonServers": [
+    "supabase-agencia",
+    "context7",
+    "@magicuidesign/mcp",
+    "shadcn-ui",
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
+}
