@@ -64,3 +64,32 @@ The application uses 4 main tables:
 - The webhook URL is production-specific and embedded in the generate form logic
 - Form questions are limited to 15 fields (q1-q15) with corresponding answers (a1-a15)
 - Session IDs follow pattern: `chat_{timestamp}_{random}`
+
+# Security prompt:
+
+Please check through all the code you just wrote and make sure it follows security best practices. make sure there are no sensitive information in the front and and there are no vulnerabilities that can be exploited
+
+# MCP
+Utilize os MCPs (Model Context Protocol) abaixo para determinadas tarefas.
+- **supabase** -> Utilizar para implementar soluções completas de backend incluindo:
+    - Banco de dados PostgreSQL com RLS (Row Level Security)
+    - Sistema de autenticação (GoTrue) com JWT
+    - API RESTful automática via PostgREST
+    - Armazenamento de arquivos (Storage)
+    - Funcionalidades Realtime para colaboração
+    - Edge Functions para lógica serverless
+    - Seguir convenções snake_case para tabelas e campos
+- **context7** -> Utilizar para acessar documentação oficial sempre atualizada de bibliotecas e frameworks.
+- **Ref-suportebemstar** -> Use a ferramenta Ref quando seu código precisar de informações ou documentação técnica atualizada sobre APIs, bibliotecas ou frameworks. A ferramenta é ideal para buscar e ler documentações de forma rápida e eficiente em termos de tokens, tanto em fontes públicas quanto privadas. Ela também contém a documentação oficial sempre atualizada de bibliotecas e frameworks e é mais otimizada para buscar exatamente o que precisa.
+- **@magicuidesign/mcp** -> Utilizar para criar e implementar componentes modernos de UI, seguindo boas práticas de design, acessibilidade e responsividade. Priorizar componentes reutilizáveis e consistência visual.
+- **playwright** -> Use esta ferramenta para automatizar interações com navegadores web, incluindo navegação, preenchimento de formulários, cliques em elementos, captura de screenshots e extração de dados de páginas web. O Playwright suporta múltiplos navegadores (Chrome, Firefox, Safari) e pode executar operações tanto em modo headless quanto com interface gráfica. Essa ferramenta é fundamental para realizar testes, ver os erros que aparecem no console para criar planos de ação para corrigir. Importante: Sempre que usar essa ferramenta, certifique-se de que a URL esteja correta.
+- **shadcn-ui** -> Utilizar a ferramenta MCP para construir interfaces com componentes estilizados via Tailwind CSS.
+    - Importar componentes
+    - Customizar via `components.json` e arquivo de temas
+    - Priorizar composição de componentes pequenos e reutilizáveis
+    - Usar `data-testid` para testes com Playwright
+    - Seguir padrões de acessibilidade (aria-label, roles)
+
+# CHANGELOGS
+
+At the end of each task, create a file in the "changelog" folder with the details of the task execution to be used as a reference for future implementations.
