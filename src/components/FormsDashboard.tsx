@@ -10,7 +10,16 @@ import {
   Trash2,
   ExternalLink,
   User,
-  BarChart3
+  BarChart3,
+  Plus,
+  Calendar,
+  TrendingUp,
+  Award,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Target,
+  Zap
 } from 'lucide-react';
 import { supabase, FormularioPergunta, FormularioResposta, FormularioCandidateAnalysis } from '../lib/supabase';
 
@@ -322,11 +331,11 @@ const FormsDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen bg-dark">
+      <div className="flex flex-col h-screen bg-background">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-brand-magenta border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-brand-gray">Carregando formulários...</p>
+          <div className="text-center animate-fade-in">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-text-secondary">Carregando formulários...</p>
           </div>
         </div>
       </div>
@@ -334,40 +343,50 @@ const FormsDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-dark">
-      {/* Header */}
-      <div className="glass border-b border-gold/20 px-6 py-4 shadow-elegant">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div>
-              <h1 className="text-xl font-semibold text-white">Dashboard de Formulários</h1>
-              <p className="text-sm text-brand-gray">
-                {viewMode === 'forms' && 'Gerencie seus formulários de candidatura'}
-                {viewMode === 'responses' && selectedForm && `Candidaturas: ${selectedForm.vaga_do_form} • ${responsesWithAnalysis.size} analisados`}
-                {viewMode === 'applicant' && selectedApplicant && `Candidato: ${selectedApplicant.user_name}`}
-                {viewMode === 'analysis' && selectedApplicant && `Análise: ${selectedApplicant.user_name}`}
-              </p>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Modern Header */}
+      <div className="glass-effect border-b border-border px-6 py-6 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center animate-pulse-glow">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-text-primary">
+                  {viewMode === 'forms' && 'Dashboard de Formulários'}
+                  {viewMode === 'responses' && 'Candidaturas'}
+                  {viewMode === 'applicant' && 'Perfil do Candidato'}
+                  {viewMode === 'analysis' && 'Análise Inteligente'}
+                </h1>
+                <p className="text-text-secondary">
+                  {viewMode === 'forms' && 'Gerencie e monitore seus formulários de candidatura'}
+                  {viewMode === 'responses' && selectedForm && `${selectedForm.vaga_do_form} • ${formResponses.length} candidatos • ${responsesWithAnalysis.size} analisados`}
+                  {viewMode === 'applicant' && selectedApplicant && `${selectedApplicant.user_name} • ${selectedApplicant.user_email}`}
+                  {viewMode === 'analysis' && selectedApplicant && `Análise detalhada de ${selectedApplicant.user_name}`}
+                </p>
+              </div>
             </div>
+            
+            {viewMode === 'responses' && selectedForm && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => exportResponses(selectedForm.id, selectedForm.vaga_do_form)}
+                  className="btn-modern btn-success shimmer-button"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Exportar</span>
+                </button>
+                <button
+                  onClick={() => deleteForm(selectedForm.id)}
+                  className="btn-modern btn-error"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
+                </button>
+              </div>
+            )}
           </div>
-          
-          {viewMode === 'responses' && selectedForm && (
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => exportResponses(selectedForm.id, selectedForm.vaga_do_form)}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Exportar</span>
-              </button>
-              <button
-                onClick={() => deleteForm(selectedForm.id)}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Excluir</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -405,283 +424,536 @@ const FormsDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Forms Grid */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {filteredForms.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-brand-gray mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    {searchTerm || filterStatus !== 'all' ? 'Nenhum formulário encontrado' : 'Nenhum formulário criado'}
-                  </h3>
-                  <p className="text-brand-gray">
-                    {searchTerm || filterStatus !== 'all' 
-                      ? 'Tente ajustar os filtros de busca.' 
-                      : 'Crie seu primeiro formulário na aba "Gerador de Job Description".'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredForms.map((form) => (
-                    <div
-                      key={form.id}
-                      onClick={() => handleFormClick(form)}
-                      className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20 hover:border-brand-purple/40 transition-all duration-300 cursor-pointer group"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-brand-purple transition-colors">
-                            {form.vaga_do_form}
-                          </h3>
-                          <p className="text-sm text-brand-gray">
-                            Criado em {form.created_at ? new Date(form.created_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
-                          </p>
+            {/* Modern Forms Grid */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-7xl mx-auto px-6 py-8">
+                {filteredForms.length === 0 ? (
+                  <div className="text-center py-20 animate-fade-in">
+                    <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <FileText className="w-12 h-12 text-text-muted" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-text-primary mb-3">
+                      {searchTerm || filterStatus !== 'all' ? 'Nenhum formulário encontrado' : 'Crie seu primeiro formulário'}
+                    </h3>
+                    <p className="text-text-secondary max-w-md mx-auto leading-relaxed">
+                      {searchTerm || filterStatus !== 'all' 
+                        ? 'Tente ajustar os filtros de busca ou criar um novo formulário.' 
+                        : 'Comece gerando uma job description na aba "Chat" e depois crie seu formulário automaticamente.'}
+                    </p>
+                    {!searchTerm && filterStatus === 'all' && (
+                      <button className="btn-modern btn-primary mt-6 shimmer-button">
+                        <Plus className="w-4 h-4" />
+                        <span>Ir para Chat</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredForms.map((form, index) => (
+                      <div
+                        key={form.id}
+                        onClick={() => handleFormClick(form)}
+                        className="modern-card cursor-pointer group animate-fade-in hover:scale-105 transition-all duration-300 relative"
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                      >
+                        {/* Card Header */}
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center flex-shrink-0">
+                                <FileText className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="text-xs text-text-muted font-medium uppercase tracking-wider">
+                                Form #{form.id}
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                              {form.vaga_do_form}
+                            </h3>
+                            <div className="flex items-center space-x-2 text-sm text-text-secondary">
+                              <Calendar className="w-3 h-3" />
+                              <span>
+                                {form.created_at ? new Date(form.created_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'short'
+                                }) : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Status Indicator */}
+                          <div className={`status-badge ${
+                            form.responses_count > 0 ? 'status-success' : 'status-info'
+                          }`}>
+                            {form.responses_count > 0 ? (
+                              <>
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Ativo</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-3 h-3" />
+                                <span>Pendente</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4 text-brand-purple" />
-                          <span className="text-sm font-medium text-brand-purple">
-                            {form.responses_count}
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 text-sm text-brand-gray">
-                          <div className="flex items-center space-x-1">
-                            <FileText className="w-4 h-4" />
-                            <span>{form.questions_count} perguntas</span>
+                        {/* Metrics */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-primary mb-1">
+                              {form.responses_count}
+                            </div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">
+                              Candidatos
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Users className="w-4 h-4" />
-                            <span>{form.responses_count} candidatos</span>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-secondary mb-1">
+                              {form.questions_count}
+                            </div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">
+                              Perguntas
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <a
-                            href={`/formulario/${form.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-2 text-brand-gray hover:text-brand-purple transition-colors"
+
+                        {/* Progress Bar */}
+                        {form.responses_count > 0 && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-text-secondary">Engajamento</span>
+                              <span className="text-xs font-medium text-text-primary">
+                                {Math.min(100, form.responses_count * 10)}%
+                              </span>
+                            </div>
+                            <div className="progress-bar">
+                              <div 
+                                className="progress-fill"
+                                style={{ width: `${Math.min(100, form.responses_count * 10)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-4 border-t border-border">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/formulario/${form.id}`, '_blank');
+                            }}
+                            className="btn-modern btn-secondary text-xs px-3 py-2"
                           >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </div>
-                      </div>
-
-                      {form.responses_count > 0 && (
-                        <div className="mt-4 pt-4 border-t border-brand-purple/20">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-green-400 font-medium">
-                              ✓ Ativo
-                            </span>
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Visualizar</span>
+                          </button>
+                          
+                          {form.responses_count > 0 && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 exportResponses(form.id, form.vaga_do_form);
                               }}
-                              className="text-sm text-brand-purple hover:text-brand-purple/80 transition-colors"
+                              className="btn-modern btn-success text-xs px-3 py-2"
                             >
-                              Exportar
+                              <Download className="w-3 h-3" />
+                              <span>Exportar</span>
                             </button>
-                          </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+
+                        {/* Performance Indicator */}
+                        {form.responses_count >= 5 && (
+                          <div className="absolute -top-2 -right-2">
+                            <div className="w-6 h-6 bg-gradient-to-br from-success to-success-light rounded-full flex items-center justify-center animate-pulse-glow">
+                              <TrendingUp className="w-3 h-3 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {viewMode === 'responses' && (
-          // Responses List View
+          // Modern Responses List View
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-6 border-b border-brand-purple/20">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={handleBackToForms}
-                  className="flex items-center space-x-2 px-4 py-2 bg-brand-purple/20 text-brand-purple rounded-lg hover:bg-brand-purple/30 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Voltar</span>
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">{selectedForm?.vaga_do_form}</h2>
-                  <p className="text-sm text-brand-gray">
-                    {formResponses.length} candidatura{formResponses.length !== 1 ? 's' : ''} • {formQuestions ? Object.keys(formQuestions).filter(key => {
-                      const value = formQuestions[key as keyof FormularioPergunta];
-                      return key.startsWith('q') && value && typeof value === 'string' && value.trim();
-                    }).length : 0} perguntas
-                  </p>
+            <div className="px-6 py-6 border-b border-border">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToForms}
+                      className="btn-modern btn-secondary"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Voltar</span>
+                    </button>
+                    <div>
+                      <h2 className="text-xl font-bold text-text-primary">{selectedForm?.vaga_do_form}</h2>
+                      <div className="flex items-center space-x-4 text-sm text-text-secondary mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{formResponses.length} candidatura{formResponses.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <FileText className="w-3 h-3" />
+                          <span>{formQuestions ? Object.keys(formQuestions).filter(key => {
+                            const value = formQuestions[key as keyof FormularioPergunta];
+                            return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+                          }).length : 0} perguntas</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Award className="w-3 h-3" />
+                          <span>{responsesWithAnalysis.size} analisados</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <a
+                    href={`/formulario/${selectedForm?.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-modern btn-primary shimmer-button"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Ver Formulário</span>
+                  </a>
                 </div>
               </div>
-              
-              <a
-                href={`/formulario/${selectedForm?.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-2 px-4 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/80 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Ver Formulário</span>
-              </a>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              {loadingResponses ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : formResponses.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users className="w-16 h-16 text-brand-gray mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Nenhuma candidatura ainda</h3>
-                  <p className="text-brand-gray">Quando candidatos preencherem o formulário, suas respostas aparecerão aqui.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {formResponses.map((response) => (
-                    <div
-                      key={response.id}
-                      onClick={() => handleApplicantClick(response)}
-                      className="bg-brand-darker/50 rounded-xl p-4 border border-brand-purple/20 hover:border-brand-purple/40 transition-all duration-300 cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-brand-purple/20 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-brand-purple" />
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-7xl mx-auto px-6 py-8">
+                {loadingResponses ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="text-center animate-fade-in">
+                      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-text-secondary">Carregando candidaturas...</p>
+                    </div>
+                  </div>
+                ) : formResponses.length === 0 ? (
+                  <div className="text-center py-20 animate-fade-in">
+                    <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                      <Users className="w-12 h-12 text-text-muted" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-text-primary mb-3">Aguardando candidaturas</h3>
+                    <p className="text-text-secondary max-w-md mx-auto leading-relaxed">
+                      Compartilhe o link do formulário para começar a receber candidaturas. Todas as respostas aparecerão aqui em tempo real.
+                    </p>
+                    <div className="mt-6">
+                      <a
+                        href={`/formulario/${selectedForm?.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-modern btn-primary shimmer-button"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Compartilhar Formulário</span>
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {formResponses.map((response, index) => (
+                      <div
+                        key={response.id}
+                        onClick={() => handleApplicantClick(response)}
+                        className="modern-card cursor-pointer group animate-fade-in hover:scale-105 transition-all duration-300"
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                      >
+                        {/* Candidate Header */}
+                        <div className="flex items-center space-x-4 mb-6">
+                          <div className="avatar bg-gradient-to-br from-primary to-primary-dark">
+                            <User className="w-5 h-5" />
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-white group-hover:text-brand-purple transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors truncate">
                               {response.user_name}
                             </h3>
-                            <p className="text-sm text-brand-gray">
-                              {response.response_id && `${response.response_id} • `}
-                              {response.user_email && `${response.user_email} • `}
-                              {response.created_at ? new Date(response.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }) : 'Data não disponível'}
+                            <p className="text-sm text-text-secondary truncate">
+                              {response.user_email || response.response_id}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+
+                        {/* Submission Info */}
+                        <div className="space-y-3 mb-6">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-text-secondary">Data de submissão</span>
+                            <span className="text-text-primary font-medium">
+                              {response.created_at ? new Date(response.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-text-secondary">Respostas</span>
+                            <span className="text-text-primary font-medium">
+                              {Object.keys(response.answers).length} de {formQuestions ? Object.keys(formQuestions).filter(key => {
+                                const value = formQuestions[key as keyof FormularioPergunta];
+                                return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+                              }).length : 0}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status Badges */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                          {responsesWithAnalysis.has(response.response_id || '') && (
+                            <div className="status-badge status-success">
+                              <Award className="w-3 h-3" />
+                              <span>Analisado</span>
+                            </div>
+                          )}
+                          {response.cv_bucket_link && (
+                            <div className="status-badge status-info">
+                              <FileText className="w-3 h-3" />
+                              <span>CV Anexo</span>
+                            </div>
+                          )}
+                          {!responsesWithAnalysis.has(response.response_id || '') && (
+                            <div className="status-badge status-warning">
+                              <Clock className="w-3 h-3" />
+                              <span>Pendente</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 pt-4 border-t border-border">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApplicantClick(response);
+                            }}
+                            className="btn-modern btn-secondary text-xs px-3 py-2 flex-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Ver Perfil</span>
+                          </button>
+                          
                           {responsesWithAnalysis.has(response.response_id || '') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleViewAnalysis(response);
                               }}
-                              className="flex items-center space-x-1 px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 transition-colors"
+                              className="btn-modern btn-success text-xs px-3 py-2"
                             >
-                              <BarChart3 className="w-4 h-4" />
-                              <span>Analisado</span>
+                              <BarChart3 className="w-3 h-3" />
+                              <span>Análise</span>
                             </button>
                           )}
+                          
                           {response.cv_bucket_link && (
                             <a
                               href={response.cv_bucket_link}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="flex items-center space-x-1 px-3 py-1 bg-brand-purple/20 text-brand-purple rounded-lg text-sm hover:bg-brand-purple/30 transition-colors"
+                              className="btn-modern btn-primary text-xs px-3 py-2"
                             >
-                              <FileText className="w-4 h-4" />
-                              <span>CV</span>
+                              <FileText className="w-3 h-3" />
                             </a>
                           )}
-                          <Eye className="w-4 h-4 text-brand-gray group-hover:text-brand-purple transition-colors" />
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {viewMode === 'applicant' && (
-          // Individual Applicant View
+          // Modern Individual Applicant View
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-6 border-b border-brand-purple/20">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={handleBackToResponses}
-                  className="flex items-center space-x-2 px-4 py-2 bg-brand-purple/20 text-brand-purple rounded-lg hover:bg-brand-purple/30 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Voltar</span>
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">{selectedApplicant?.user_name}</h2>
-                  <p className="text-sm text-brand-gray">
-                    {selectedApplicant?.response_id && `${selectedApplicant.response_id} • `}
-                    {selectedApplicant?.user_email && `${selectedApplicant.user_email} • `}
-                    {selectedApplicant && selectedApplicant.created_at ? new Date(selectedApplicant.created_at).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : 'Data não disponível'}
-                  </p>
+            <div className="px-6 py-6 border-b border-border">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleBackToResponses}
+                      className="btn-modern btn-secondary"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Voltar</span>
+                    </button>
+                    <div className="flex items-center space-x-4">
+                      <div className="avatar avatar-lg bg-gradient-to-br from-primary to-primary-dark">
+                        <User className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-text-primary">{selectedApplicant?.user_name}</h2>
+                        <div className="flex items-center space-x-4 text-sm text-text-secondary mt-1">
+                          <div className="flex items-center space-x-1">
+                            <User className="w-3 h-3" />
+                            <span>{selectedApplicant?.response_id}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {selectedApplicant && selectedApplicant.created_at ? new Date(selectedApplicant.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'Data não disponível'}
+                            </span>
+                          </div>
+                          {selectedApplicant?.user_email && (
+                            <div className="flex items-center space-x-1">
+                              <span>•</span>
+                              <span>{selectedApplicant.user_email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    {responsesWithAnalysis.has(selectedApplicant?.response_id || '') && (
+                      <button
+                        onClick={() => handleViewAnalysis(selectedApplicant!)}
+                        className="btn-modern btn-success shimmer-button"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Ver Análise IA</span>
+                      </button>
+                    )}
+                    {selectedApplicant?.cv_bucket_link && (
+                      <a
+                        href={selectedApplicant.cv_bucket_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-modern btn-primary"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Baixar CV</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                {responsesWithAnalysis.has(selectedApplicant?.response_id || '') && (
-                  <button
-                    onClick={() => handleViewAnalysis(selectedApplicant!)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-500/80 transition-colors"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    <span>Ver Análise</span>
-                  </button>
-                )}
-                {selectedApplicant?.cv_bucket_link && (
-                  <a
-                    href={selectedApplicant.cv_bucket_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 px-4 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/80 transition-colors"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Ver CV</span>
-                  </a>
-                )}
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              {formQuestions && selectedApplicant && (
-                <div className="space-y-6">
-                  {Object.keys(selectedApplicant.answers).map((answerKey) => {
-                    const questionNumber = answerKey.replace('a', '');
-                    const questionKey = `q${questionNumber}` as keyof FormularioPergunta;
-                    const question = formQuestions[questionKey];
-                    
-                    if (!question || typeof question !== 'string') return null;
-                    
-                    return (
-                      <div key={answerKey} className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                        <h4 className="text-lg font-semibold text-brand-purple mb-3">
-                          {question}
-                        </h4>
-                        <p className="text-gray-200 text-sm leading-relaxed">
-                          {selectedApplicant.answers[answerKey]}
-                        </p>
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-7xl mx-auto px-6 py-8">
+                {formQuestions && selectedApplicant && (
+                  <div className="space-y-8">
+                    {/* Candidate Summary */}
+                    <div className="modern-card">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Resumo da Candidatura</h3>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-primary mb-1">
+                            {Object.keys(selectedApplicant.answers).length}
+                          </div>
+                          <div className="text-sm text-text-secondary uppercase tracking-wide">
+                            Respostas Enviadas
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-secondary mb-1">
+                            {formQuestions ? Object.keys(formQuestions).filter(key => {
+                              const value = formQuestions[key as keyof FormularioPergunta];
+                              return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+                            }).length : 0}
+                          </div>
+                          <div className="text-sm text-text-secondary uppercase tracking-wide">
+                            Perguntas Totais
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-2xl font-bold mb-1 ${
+                            responsesWithAnalysis.has(selectedApplicant.response_id || '') ? 'text-success' : 'text-warning'
+                          }`}>
+                            {responsesWithAnalysis.has(selectedApplicant.response_id || '') ? '✓' : '...'}
+                          </div>
+                          <div className="text-sm text-text-secondary uppercase tracking-wide">
+                            Status Análise
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {selectedApplicant?.cv_bucket_link && (
+                        <div className="mt-6 pt-6 border-t border-border">
+                          <div className="flex items-center justify-center">
+                            <div className="status-badge status-success">
+                              <FileText className="w-3 h-3" />
+                              <span>Currículo Anexado</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Q&A Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Respostas Detalhadas</h3>
+                      </div>
+                      
+                      {Object.keys(selectedApplicant.answers).map((answerKey, index) => {
+                        const questionNumber = answerKey.replace('a', '');
+                        const questionKey = `q${questionNumber}` as keyof FormularioPergunta;
+                        const question = formQuestions[questionKey];
+                        
+                        if (!question || typeof question !== 'string') return null;
+                        
+                        return (
+                          <div 
+                            key={answerKey} 
+                            className="modern-card animate-fade-in"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            <div className="flex items-start space-x-4">
+                              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-bold text-primary">
+                                  {questionNumber}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-lg font-semibold text-text-primary mb-4 leading-relaxed">
+                                  {question}
+                                </h4>
+                                <div className="bg-surface p-4 rounded-lg border-l-4 border-primary">
+                                  <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+                                    {selectedApplicant.answers[answerKey]}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -709,223 +981,291 @@ const FormsDashboard: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-6 pb-20">
               {loadingAnalysis ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center animate-fade-in">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-2">Carregando análise...</h3>
+                    <p className="text-text-secondary">Processando dados do candidato com IA</p>
+                  </div>
                 </div>
               ) : candidateAnalysis ? (
                 <div className="space-y-6">
-                  {/* Decision, Scores, and Confidence Level */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Decision Card */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                      <h3 className="text-lg font-semibold text-white mb-4">Decisão</h3>
-                      <div className={`inline-flex items-center px-4 py-2 rounded-lg text-white font-semibold ${
-                        candidateAnalysis.decision === 'HIRE' ? 'bg-green-500/20 text-green-400' :
-                        candidateAnalysis.decision === 'INTERVIEW' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
+                  {/* Hero Decision Card */}
+                  <div className="modern-card mb-8 text-center bg-gradient-to-br from-surface-raised to-surface-elevated border-2">
+                    <div className="flex flex-col items-center space-y-6">
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold animate-pulse-glow ${
+                        candidateAnalysis.decision === 'HIRE' ? 'bg-gradient-to-br from-success to-success-light text-white' :
+                        candidateAnalysis.decision === 'INTERVIEW' ? 'bg-gradient-to-br from-warning to-warning-light text-white' :
+                        'bg-gradient-to-br from-error to-error-light text-white'
                       }`}>
-                        {candidateAnalysis.decision === 'HIRE' ? '✓ CONTRATAR' :
-                         candidateAnalysis.decision === 'INTERVIEW' ? '? ENTREVISTAR' :
-                         '✗ NÃO CONTRATAR'}
+                        {candidateAnalysis.decision === 'HIRE' ? '✓' :
+                         candidateAnalysis.decision === 'INTERVIEW' ? '?' :
+                         '✗'}
                       </div>
-                      {candidateAnalysis.reasoning && (
-                        <p className="text-sm text-gray-300 mt-3">{candidateAnalysis.reasoning}</p>
-                      )}
-                    </div>
-
-                    {/* Scores Card */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                      <h3 className="text-lg font-semibold text-white mb-4">Pontuações</h3>
-                      <div className="space-y-3">
-                        {candidateAnalysis.overall_score !== null && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-300">Geral</span>
-                              <span className="text-white font-semibold">{candidateAnalysis.overall_score}/100</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-brand-purple to-brand-magenta h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${candidateAnalysis.overall_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                        {candidateAnalysis.technical_score !== null && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-300">Técnico</span>
-                              <span className="text-white font-semibold">{candidateAnalysis.technical_score}/100</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${candidateAnalysis.technical_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                        {candidateAnalysis.behavioral_score !== null && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-300">Comportamental</span>
-                              <span className="text-white font-semibold">{candidateAnalysis.behavioral_score}/100</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${candidateAnalysis.behavioral_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                        {candidateAnalysis.cultural_fit_score !== null && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-300">Fit Cultural</span>
-                              <span className="text-white font-semibold">{candidateAnalysis.cultural_fit_score}/100</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-brand-gold to-yellow-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${candidateAnalysis.cultural_fit_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-                        {candidateAnalysis.experience_score !== null && (
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-300">Experiência</span>
-                              <span className="text-white font-semibold">{candidateAnalysis.experience_score}/100</span>
-                            </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${candidateAnalysis.experience_score}%` }}
-                              ></div>
-                            </div>
-                          </div>
+                      
+                      <div>
+                        <h2 className="text-3xl font-bold text-text-primary mb-2">
+                          {candidateAnalysis.decision === 'HIRE' ? 'RECOMENDADO PARA CONTRATAÇÃO' :
+                           candidateAnalysis.decision === 'INTERVIEW' ? 'CANDIDATO PARA ENTREVISTA' :
+                           'NÃO RECOMENDADO'}
+                        </h2>
+                        {candidateAnalysis.reasoning && (
+                          <p className="text-text-secondary max-w-2xl mx-auto leading-relaxed">
+                            {candidateAnalysis.reasoning}
+                          </p>
                         )}
                       </div>
-                    </div>
-
-                    {/* Confidence Level Card */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                      <h3 className="text-lg font-semibold text-white mb-4">Nível de Confiança da Análise</h3>
-                      <div className="flex flex-col space-y-3">
-                        <div className={`inline-flex items-center px-4 py-2 rounded-lg text-white font-semibold ${
-                          candidateAnalysis.confidence_level === 'HIGH' ? 'bg-green-500/20 text-green-400' :
-                          candidateAnalysis.confidence_level === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {candidateAnalysis.confidence_level === 'HIGH' ? 'ALTO' :
-                           candidateAnalysis.confidence_level === 'MEDIUM' ? 'MÉDIO' :
-                           'BAIXO'}
+                      
+                      {/* Overall Score Circle */}
+                      {candidateAnalysis.overall_score !== null && (
+                        <div className="relative">
+                          <div className="circular-progress">
+                            <svg className="w-24 h-24">
+                              <circle
+                                cx="48"
+                                cy="48"
+                                r="40"
+                                className="progress-bg"
+                              />
+                              <circle
+                                cx="48"
+                                cy="48"
+                                r="40"
+                                className="progress-fill"
+                                strokeDasharray={`${2 * Math.PI * 40}`}
+                                strokeDashoffset={`${2 * Math.PI * 40 * (1 - candidateAnalysis.overall_score / 100)}`}
+                              />
+                            </svg>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">{candidateAnalysis.overall_score}</div>
+                              <div className="text-xs text-text-muted uppercase tracking-wider">Score Geral</div>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-300">
-                          {candidateAnalysis.confidence_level === 'HIGH' ? 'Análise muito confiável' :
-                           candidateAnalysis.confidence_level === 'MEDIUM' ? 'Análise moderadamente confiável' :
-                           'Análise com baixa confiança'}
-                        </p>
+                      )}
+                      
+                      {/* Confidence Level */}
+                      <div className={`status-badge ${
+                        candidateAnalysis.confidence_level === 'HIGH' ? 'status-success' :
+                        candidateAnalysis.confidence_level === 'MEDIUM' ? 'status-warning' :
+                        'status-error'
+                      }`}>
+                        <Target className="w-3 h-3" />
+                        <span>Confiança {candidateAnalysis.confidence_level === 'HIGH' ? 'Alta' :
+                           candidateAnalysis.confidence_level === 'MEDIUM' ? 'Média' : 'Baixa'}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Strengths and Concerns */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Detailed Scores Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {candidateAnalysis.technical_score !== null && (
+                      <div className="modern-card text-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <Zap className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-2xl font-bold text-primary mb-1">{candidateAnalysis.technical_score}</div>
+                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Técnico</div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill bg-gradient-to-r from-primary to-primary-light"
+                            style={{ width: `${candidateAnalysis.technical_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {candidateAnalysis.behavioral_score !== null && (
+                      <div className="modern-card text-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <User className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-2xl font-bold text-secondary mb-1">{candidateAnalysis.behavioral_score}</div>
+                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Comportamental</div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill bg-gradient-to-r from-secondary to-secondary-light"
+                            style={{ width: `${candidateAnalysis.behavioral_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {candidateAnalysis.cultural_fit_score !== null && (
+                      <div className="modern-card text-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-success to-success-light rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <Users className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-2xl font-bold text-success mb-1">{candidateAnalysis.cultural_fit_score}</div>
+                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Fit Cultural</div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill bg-gradient-to-r from-success to-success-light"
+                            style={{ width: `${candidateAnalysis.cultural_fit_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {candidateAnalysis.experience_score !== null && (
+                      <div className="modern-card text-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-warning to-warning-light rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <Award className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-2xl font-bold text-warning mb-1">{candidateAnalysis.experience_score}</div>
+                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Experiência</div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill bg-gradient-to-r from-warning to-warning-light"
+                            style={{ width: `${candidateAnalysis.experience_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Insights Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     {/* Strengths */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-green-500/20">
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                        Pontos Fortes
-                      </h3>
+                    <div className="modern-card border-success/20 bg-gradient-to-br from-success/5 to-transparent">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-success to-success-light rounded-xl flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Pontos Fortes</h3>
+                      </div>
                       {candidateAnalysis.strengths.length > 0 ? (
-                        <ul className="space-y-2">
+                        <div className="space-y-3">
                           {candidateAnalysis.strengths.map((strength, index) => (
-                            <li key={index} className="flex items-start space-x-2">
-                              <span className="text-green-400 mt-1">✓</span>
-                              <span className="text-gray-200 text-sm">{strength}</span>
-                            </li>
+                            <div key={index} className="flex items-start space-x-3 p-3 bg-success/5 rounded-lg border border-success/10">
+                              <div className="w-6 h-6 bg-success/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <CheckCircle className="w-3 h-3 text-success" />
+                              </div>
+                              <span className="text-text-primary leading-relaxed">{strength}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">Nenhum ponto forte identificado.</p>
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-text-muted/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <AlertCircle className="w-6 h-6 text-text-muted" />
+                          </div>
+                          <p className="text-text-muted">Nenhum ponto forte identificado</p>
+                        </div>
                       )}
                     </div>
 
                     {/* Concerns */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-yellow-500/20">
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                        <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                        Preocupações
-                      </h3>
+                    <div className="modern-card border-warning/20 bg-gradient-to-br from-warning/5 to-transparent">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-warning to-warning-light rounded-xl flex items-center justify-center">
+                          <AlertCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Preocupações</h3>
+                      </div>
                       {candidateAnalysis.concerns.length > 0 ? (
-                        <ul className="space-y-2">
+                        <div className="space-y-3">
                           {candidateAnalysis.concerns.map((concern, index) => (
-                            <li key={index} className="flex items-start space-x-2">
-                              <span className="text-yellow-400 mt-1">⚠</span>
-                              <span className="text-gray-200 text-sm">{concern}</span>
-                            </li>
+                            <div key={index} className="flex items-start space-x-3 p-3 bg-warning/5 rounded-lg border border-warning/10">
+                              <div className="w-6 h-6 bg-warning/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <AlertCircle className="w-3 h-3 text-warning" />
+                              </div>
+                              <span className="text-text-primary leading-relaxed">{concern}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">Nenhuma preocupação identificada.</p>
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-text-muted/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <CheckCircle className="w-6 h-6 text-text-muted" />
+                          </div>
+                          <p className="text-text-muted">Nenhuma preocupação identificada</p>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   {/* Red Flags */}
                   {candidateAnalysis.red_flags.length > 0 && (
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-red-500/20">
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                        Red Flags
-                      </h3>
-                      <ul className="space-y-2">
+                    <div className="modern-card border-error/30 bg-gradient-to-br from-error/10 to-transparent mb-8">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-error to-error-light rounded-xl flex items-center justify-center animate-pulse-glow">
+                          <AlertCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Red Flags Críticos</h3>
+                      </div>
+                      <div className="space-y-3">
                         {candidateAnalysis.red_flags.map((flag, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-red-400 mt-1">🚨</span>
-                            <span className="text-gray-200 text-sm">{flag}</span>
-                          </li>
+                          <div key={index} className="flex items-start space-x-3 p-4 bg-error/10 rounded-lg border border-error/20">
+                            <div className="w-6 h-6 bg-error/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <AlertCircle className="w-3 h-3 text-error" />
+                            </div>
+                            <span className="text-text-primary font-medium leading-relaxed">{flag}</span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
-                  {/* Next Steps and Development Areas */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Action Items */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Next Steps */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                      <h3 className="text-lg font-semibold text-white mb-4">Próximos Passos</h3>
+                    <div className="modern-card border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center">
+                          <Target className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Próximos Passos</h3>
+                      </div>
                       {candidateAnalysis.next_steps.length > 0 ? (
-                        <ul className="space-y-2">
+                        <div className="space-y-3">
                           {candidateAnalysis.next_steps.map((step, index) => (
-                            <li key={index} className="flex items-start space-x-2">
-                              <span className="text-brand-purple mt-1">→</span>
-                              <span className="text-gray-200 text-sm">{step}</span>
-                            </li>
+                            <div key={index} className="flex items-start space-x-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                              <div className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-primary font-bold text-xs">
+                                {index + 1}
+                              </div>
+                              <span className="text-text-primary leading-relaxed">{step}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">Nenhum próximo passo definido.</p>
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-text-muted/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <Target className="w-6 h-6 text-text-muted" />
+                          </div>
+                          <p className="text-text-muted">Nenhum próximo passo definido</p>
+                        </div>
                       )}
                     </div>
 
                     {/* Development Areas */}
-                    <div className="bg-brand-darker/50 rounded-xl p-6 border border-brand-purple/20">
-                      <h3 className="text-lg font-semibold text-white mb-4">Áreas de Desenvolvimento</h3>
+                    <div className="modern-card border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
+                      <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary">Áreas de Crescimento</h3>
+                      </div>
                       {candidateAnalysis.development_areas.length > 0 ? (
-                        <ul className="space-y-2">
+                        <div className="space-y-3">
                           {candidateAnalysis.development_areas.map((area, index) => (
-                            <li key={index} className="flex items-start space-x-2">
-                              <span className="text-brand-purple mt-1">📈</span>
-                              <span className="text-gray-200 text-sm">{area}</span>
-                            </li>
+                            <div key={index} className="flex items-start space-x-3 p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+                              <div className="w-6 h-6 bg-secondary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <TrendingUp className="w-3 h-3 text-secondary" />
+                              </div>
+                              <span className="text-text-primary leading-relaxed">{area}</span>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">Nenhuma área de desenvolvimento identificada.</p>
+                        <div className="text-center py-8">
+                          <div className="w-12 h-12 bg-text-muted/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <TrendingUp className="w-6 h-6 text-text-muted" />
+                          </div>
+                          <p className="text-text-muted">Nenhuma área de desenvolvimento identificada</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -933,10 +1273,18 @@ const FormsDashboard: React.FC = () => {
 
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <BarChart3 className="w-16 h-16 text-brand-gray mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Análise não encontrada</h3>
-                  <p className="text-brand-gray">Esta análise ainda não foi gerada para este candidato.</p>
+                <div className="text-center py-20 animate-fade-in">
+                  <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <BarChart3 className="w-12 h-12 text-text-muted" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-text-primary mb-3">Análise não disponível</h3>
+                  <p className="text-text-secondary max-w-md mx-auto leading-relaxed mb-6">
+                    Esta análise ainda não foi processada. O sistema analisará automaticamente as respostas do candidato em breve.
+                  </p>
+                  <div className="status-badge status-warning">
+                    <Clock className="w-3 h-3" />
+                    <span>Processamento pendente</span>
+                  </div>
                 </div>
               )}
             </div>

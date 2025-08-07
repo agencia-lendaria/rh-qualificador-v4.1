@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, AlertCircle, Check, Clock, Copy, CheckCheck, FileText } from 'lucide-react';
+import { Send, AlertCircle, Check, Clock, Copy, CheckCheck, FileText, Sparkles, MessageCircle, User, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabase';
 import { env } from '../config/env';
@@ -336,202 +336,291 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((message, index) => (
-          <div
-            key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in group`}
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div className={`max-w-xs lg:max-w-2xl px-5 py-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] relative ${
-              message.sender === 'user'
-                ? 'message-user'
-                : message.sender === 'assistant'
-                ? 'message-assistant'
-                : 'message-system'
-            }`}>
-              {/* Copy button */}
-              {(message.sender === 'assistant' || message.sender === 'user') && (
-                <button
-                  onClick={() => handleCopyMessage(message.text, message.id)}
-                  className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${
-                    message.sender === 'user' 
-                      ? 'hover:bg-dark/20 text-dark/70 hover:text-dark' 
-                      : 'hover:bg-gold/20 text-gray hover:text-gold'
-                  }`}
-                  title="Copiar mensagem"
-                >
-                  {copiedMessageId === message.id ? (
-                    <CheckCheck className="w-4 h-4" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-
-              {/* Message content */}
-              <div className="pr-8">
-                {message.sender === 'assistant' ? (
-                  <div className="markdown-content">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => <h1 className="text-xl font-bold mb-3 text-white">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-white">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-gold">{children}</h3>,
-                        h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-gold">{children}</h4>,
-                        p: ({ children }) => <p className="mb-2 leading-relaxed text-gray-200">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-gray-200">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-gray-200">{children}</ol>,
-                        li: ({ children }) => <li className="text-gray-200">{children}</li>,
-                        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                        em: ({ children }) => <em className="italic text-gold">{children}</em>,
-                        code: ({ children }) => (
-                          <code className="bg-dark/50 px-1.5 py-0.5 rounded text-gold font-mono text-sm">
-                            {children}
-                          </code>
-                        ),
-                        pre: ({ children }) => (
-                          <pre className="bg-dark/50 p-3 rounded-lg overflow-x-auto mb-2 border border-gold/20">
-                            {children}
-                          </pre>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-gold pl-4 italic text-gray-300 mb-2">
-                            {children}
-                          </blockquote>
-                        ),
-                        a: ({ href, children }) => (
-                          <a 
-                            href={href} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-gold hover:text-gold/80 underline"
-                          >
-                            {children}
-                          </a>
-                        ),
-                      }}
-                    >
-                      {message.text}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed break-words font-medium">{message.text}</p>
-                )}
+    <div className="flex flex-col h-full bg-background">
+      {/* Welcome Header */}
+      {messages.length === 0 && (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-2xl mx-auto animate-fade-in">
+            <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow">
+              <Sparkles className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-text-primary mb-4">
+              Bem-vindo ao HR Intelligence
+            </h2>
+            <p className="text-text-secondary text-lg mb-8 leading-relaxed">
+              Crie job descriptions personalizadas usando IA. Descreva a vaga que você precisa e deixe nossa inteligência artificial criar o conteúdo perfeito para você.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <div className="modern-card p-4 text-left">
+                <MessageCircle className="w-6 h-6 text-primary mb-2" />
+                <h3 className="font-semibold text-text-primary mb-1">Conversação Natural</h3>
+                <p className="text-sm text-text-secondary">Descreva a vaga em suas próprias palavras</p>
               </div>
-
-              {/* Message footer */}
-              <div className={`flex items-center justify-between mt-3 text-xs ${
-                message.sender === 'user' 
-                  ? 'text-dark/70' 
-                  : message.sender === 'assistant'
-                  ? 'text-gray'
-                  : 'text-gray/70'
-              }`}>
-                <span className="font-medium">{formatTime(message.timestamp)}</span>
-                {message.sender === 'user' && (
-                  <div className="ml-2 flex items-center">
-                    {getStatusIcon(message.status)}
-                  </div>
-                )}
+              <div className="modern-card p-4 text-left">
+                <FileText className="w-6 h-6 text-secondary mb-2" />
+                <h3 className="font-semibold text-text-primary mb-1">Formulários Automáticos</h3>
+                <p className="text-sm text-text-secondary">Gere formulários de candidatura automaticamente</p>
               </div>
             </div>
+            <div className="text-text-muted text-sm">
+              💡 Dica: Seja específico sobre requisitos, benefícios e cultura da empresa
+            </div>
           </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Gerar Formulário Button */}
-      <div className="flex flex-col items-center justify-center py-2">
-        <button
-          onClick={handleGenerateForm}
-          disabled={formLoading || !messages.length || messages[messages.length-1].sender !== 'assistant'}
-          className={`p-4 rounded-2xl transition-all duration-300 font-semibold flex items-center justify-center mb-2 ${
-            formLoading || !messages.length || messages[messages.length-1].sender !== 'assistant'
-              ? 'bg-brand-gray/20 text-brand-gray/50 cursor-not-allowed'
-              : 'btn-gold text-white hover:shadow-gold active:scale-95'
-          }`}
-        >
-          {formLoading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Enviando...
-            </>
-          ) : (
-            <>
-              <FileText className="w-5 h-5 mr-2" />
-              Gerar Formulário
-            </>
-          )}
-        </button>
-        {formSuccess && (
-          <div className="flex items-center text-green-500 text-sm font-medium">
-            <Check className="w-4 h-4 mr-1" /> Formulário criado com sucesso!
-          </div>
-        )}
-        {formError && (
-          <div className="flex items-center text-red-500 text-sm font-medium">
-            <AlertCircle className="w-4 h-4 mr-1" /> {formError}
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="glass border-t border-gold/20 px-4 py-6 shadow-elegant">
-        <div className="flex items-end space-x-4 max-w-4xl mx-auto">
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua mensagem..."
-              className="w-full px-5 py-4 input-elegant rounded-2xl focus:outline-none resize-none transition-all duration-300 max-h-32 font-medium"
-              rows={1}
-              style={{
-                minHeight: '56px',
-                height: 'auto',
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
-              }}
-              disabled={false}
-              readOnly={isLoading}
-            />
-            {isLoading && (
-              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                <div className="w-5 h-5 border-2 border-gold/30 border-t-gold rounded-full animate-spin"></div>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputText.trim() || isLoading}
-            className={`p-4 rounded-2xl transition-all duration-300 font-semibold flex items-center justify-center ${
-              !inputText.trim() || isLoading
-                ? 'bg-brand-gray/20 text-brand-gray/50 cursor-not-allowed'
-                : 'btn-magenta text-white hover:shadow-magenta active:scale-95'
-            }`}
-          >
-            <Send className={`w-5 h-5 ${isLoading ? 'animate-pulse' : ''}`} />
-          </button>
         </div>
-        
-        {/* Typing indicator */}
-        {isLoading && (
-          <div className="flex items-center justify-center mt-4 space-x-2 text-brand-magenta text-sm font-medium">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-brand-magenta rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-brand-magenta rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-brand-magenta rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-            <span>Processando...</span>
+      )}
+
+      {/* Messages */}
+      {messages.length > 0 && (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            {messages.map((message, index) => (
+              <div
+                key={message.id}
+                className="animate-fade-in group"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <div className={`flex items-start space-x-4 ${
+                  message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                }`}>
+                  {/* Avatar */}
+                  <div className={`avatar avatar-sm flex-shrink-0 ${
+                    message.sender === 'user' 
+                      ? 'bg-gradient-to-br from-primary to-primary-dark' 
+                      : message.sender === 'assistant'
+                      ? 'bg-gradient-to-br from-secondary to-secondary-dark'
+                      : 'bg-text-muted'
+                  }`}>
+                    {message.sender === 'user' ? (
+                      <User className="w-4 h-4" />
+                    ) : message.sender === 'assistant' ? (
+                      <Zap className="w-4 h-4" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" />
+                    )}
+                  </div>
+
+                  {/* Message Content */}
+                  <div className={`flex-1 min-w-0 ${
+                    message.sender === 'user' ? 'text-right' : 'text-left'
+                  }`}>
+                    <div className={`inline-block max-w-full chat-message ${
+                      message.sender === 'user'
+                        ? 'chat-message-user'
+                        : message.sender === 'assistant'
+                        ? 'chat-message-assistant'
+                        : 'chat-message-system'
+                    } px-6 py-4 relative`}>
+                      {/* Copy button */}
+                      {(message.sender === 'assistant' || message.sender === 'user') && (
+                        <button
+                          onClick={() => handleCopyMessage(message.text, message.id)}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 hover:bg-black/10"
+                          title="Copiar mensagem"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <CheckCheck className="w-4 h-4" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Message content */}
+                      <div className="pr-8">
+                        {message.sender === 'assistant' ? (
+                          <div className="markdown-content">
+                            <ReactMarkdown
+                              components={{
+                                h1: ({ children }) => <h1 className="text-xl font-bold mb-3 text-text-primary">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-text-primary">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-primary">{children}</h3>,
+                                h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-primary">{children}</h4>,
+                                p: ({ children }) => <p className="mb-3 leading-relaxed text-text-primary">{children}</p>,
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ol>,
+                                li: ({ children }) => <li className="text-text-primary">{children}</li>,
+                                strong: ({ children }) => <strong className="font-semibold text-text-primary">{children}</strong>,
+                                em: ({ children }) => <em className="italic text-primary">{children}</em>,
+                                code: ({ children }) => (
+                                  <code className="bg-surface px-1.5 py-0.5 rounded text-primary font-mono text-sm">
+                                    {children}
+                                  </code>
+                                ),
+                                pre: ({ children }) => (
+                                  <pre className="bg-surface p-4 rounded-lg overflow-x-auto mb-3 border border-border">
+                                    {children}
+                                  </pre>
+                                ),
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-4 border-primary pl-4 italic text-text-secondary mb-3">
+                                    {children}
+                                  </blockquote>
+                                ),
+                                a: ({ href, children }) => (
+                                  <a 
+                                    href={href} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary-light underline"
+                                  >
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.text}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="leading-relaxed break-words">{message.text}</p>
+                        )}
+                      </div>
+
+                      {/* Message footer */}
+                      <div className="flex items-center justify-between mt-3 text-xs opacity-70">
+                        <span>{formatTime(message.timestamp)}</span>
+                        {message.sender === 'user' && (
+                          <div className="ml-2 flex items-center">
+                            {getStatusIcon(message.status)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Generate Form Button */}
+      {messages.length > 0 && messages[messages.length-1].sender === 'assistant' && (
+        <div className="px-4 py-2 border-t border-border bg-surface">
+          <div className="max-w-4xl mx-auto flex justify-center">
+            <button
+              onClick={handleGenerateForm}
+              disabled={formLoading}
+              className={`btn-modern btn-success shimmer-button ${
+                formLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {formLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Gerando Formulário...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5" />
+                  Gerar Formulário
+                </>
+              )}
+            </button>
+          </div>
+          {formSuccess && (
+            <div className="flex justify-center mt-2">
+              <div className="status-badge status-success">
+                <Check className="w-4 h-4" />
+                Formulário criado com sucesso!
+              </div>
+            </div>
+          )}
+          {formError && (
+            <div className="flex justify-center mt-2">
+              <div className="status-badge status-error">
+                <AlertCircle className="w-4 h-4" />
+                {formError}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modern Input Area */}
+      <div className="border-t border-border bg-surface/50 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-end space-x-3">
+            {/* Input Container */}
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={isLoading ? "Aguardando resposta..." : "Digite sua mensagem... (Shift + Enter para nova linha)"}
+                className="input-modern w-full min-h-[52px] max-h-32 resize-none pr-12"
+                rows={1}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
+                }}
+                disabled={isLoading}
+              />
+              
+              {/* Loading Indicator in Input */}
+              {isLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="typing-dots">
+                    <div className="typing-dot"></div>
+                    <div className="typing-dot"></div>
+                    <div className="typing-dot"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Send Button */}
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputText.trim() || isLoading}
+              className={`btn-modern ${
+                !inputText.trim() || isLoading
+                  ? 'bg-surface-elevated text-text-muted cursor-not-allowed'
+                  : 'btn-primary shimmer-button'
+              } p-3 rounded-xl`}
+            >
+              <Send className={`w-5 h-5 ${isLoading ? 'opacity-50' : ''}`} />
+            </button>
+          </div>
+          
+          {/* Enhanced Typing Indicator */}
+          {isLoading && (
+            <div className="typing-indicator mt-3 justify-center">
+              <div className="avatar avatar-sm bg-gradient-to-br from-secondary to-secondary-dark mr-2">
+                <Zap className="w-3 h-3" />
+              </div>
+              <div className="typing-dots">
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
+              </div>
+              <span className="ml-2 text-text-secondary">HR Intelligence está processando...</span>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          {!isLoading && inputText.trim() === '' && messages.length === 0 && (
+            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+              {[
+                "Preciso de uma vaga para desenvolvedor frontend",
+                "Quero criar um job description para marketing",
+                "Vaga para analista de dados júnior",
+                "Posição de gerente de projetos"
+              ].map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => setInputText(suggestion)}
+                  className="btn-modern btn-secondary text-sm px-3 py-2 text-text-secondary hover:text-text-primary animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
