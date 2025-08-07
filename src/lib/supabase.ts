@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from '../config/env';
 
-const supabaseUrl = 'https://tscrxukrkwnurkzqfjty.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzY3J4dWtya3dudXJrenFmanR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2MDc5NTcsImV4cCI6MjA1NjE4Mzk1N30.e3aXYge4yU5RXLbYpNt4DdQhFC6nmaAtxV60WNthjVk';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
 
 // Database types
 export interface FormularioNome {
@@ -80,7 +78,7 @@ export interface FormularioCandidateAnalysis {
   next_steps: string[];
   development_areas: string[];
   confidence_level: 'HIGH' | 'MEDIUM' | 'LOW';
-  full_analysis_json: any | null;
+  full_analysis_json: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 } 

@@ -9,6 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
+## Development Tips
+
+- don't ask to run npm dev, It's usually running already
+
 ## Architecture Overview
 
 This is a React TypeScript application for HR recruitment tools, specifically for generating job descriptions and dynamic application forms. The system has three main functionalities:
@@ -93,3 +97,8 @@ Utilize os MCPs (Model Context Protocol) abaixo para determinadas tarefas.
 # CHANGELOGS
 
 At the end of each task, create a file in the "changelog" folder with the details of the task execution to be used as a reference for future implementations.
+
+# ANOTHER
+- Design System descrito no arquivo -> DESIGN_SYSTEM.md
+
+- `npm run dev` já está em execução na porta http://localhost:5173/

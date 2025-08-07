@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Eye, 
   Users, 
   FileText, 
-  Calendar, 
   Search, 
   Filter,
   Download,
   Trash2,
-  Plus,
   ExternalLink,
   User,
   BarChart3
 } from 'lucide-react';
-import { supabase, FormularioNome, FormularioPergunta, FormularioResposta, FormularioCandidateAnalysis } from '../lib/supabase';
+import { supabase, FormularioPergunta, FormularioResposta, FormularioCandidateAnalysis } from '../lib/supabase';
 
 interface FormWithStats {
   id: number;
@@ -38,7 +35,6 @@ interface FormResponse {
 type ViewMode = 'forms' | 'responses' | 'applicant' | 'analysis';
 
 const FormsDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const [forms, setForms] = useState<FormWithStats[]>([]);
   const [selectedForm, setSelectedForm] = useState<FormWithStats | null>(null);
   const [formResponses, setFormResponses] = useState<FormResponse[]>([]);
@@ -257,7 +253,7 @@ const FormsDashboard: React.FC = () => {
 
   const exportResponses = (formId: number, formName: string) => {
     const responses = formResponses.map(response => {
-      const row: any = {
+      const row: Record<string, string> = {
         'ID da Resposta': response.response_id || '',
         'Nome': response.user_name,
         'Email': response.user_email || '',
@@ -398,7 +394,7 @@ const FormsDashboard: React.FC = () => {
                   <Filter className="w-4 h-4 text-brand-gray" />
                   <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    onChange={(e) => setFilterStatus(e.target.value as FormResponse['status'])}
                     className="bg-brand-darker/50 border border-brand-purple/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-purple"
                   >
                     <option value="all">Todos</option>

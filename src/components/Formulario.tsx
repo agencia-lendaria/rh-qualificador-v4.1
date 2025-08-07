@@ -84,7 +84,7 @@ const Formulario: React.FC = () => {
   const uploadCurriculum = async (file: File): Promise<string | null> => {
     try {
       const fileName = `curriculum_${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('curriculum-uploads')
         .upload(fileName, file);
 
@@ -128,7 +128,7 @@ const Formulario: React.FC = () => {
       const responseId = generateResponseId();
 
       // Create submission data without the base fields
-      const answersData: any = {};
+      const answersData: Record<string, string> = {};
       Object.keys(formData).forEach(key => {
         if (key !== 'user_name' && key !== 'user_email') {
           answersData[key] = formData[key];

@@ -5,8 +5,10 @@ import Navigation from './components/Navigation';
 import ChatInterface from './components/ChatInterface';
 import Formulario from './components/Formulario';
 import FormsDashboard from './components/FormsDashboard';
+import MeetingsAnalysis from './components/MeetingsAnalysis';
 import BucketTest from './components/BucketTest';
 import { supabase } from './lib/supabase';
+import { env } from './config/env';
 
 interface Message {
   id: string;
@@ -17,7 +19,7 @@ interface Message {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard' | 'meetings'>('chat');
   
   // Chat state moved to App level
   const [messages, setMessages] = useState<Message[]>([]);
@@ -110,7 +112,7 @@ function App() {
         session_id: sessionId
       };
       
-      const questionsResp = await fetch('https://n8nwebhook-ops.agencialendaria.ai/webhook/d7da636a-b358-4111-9828-e4171b94e275', {
+      const questionsResp = await fetch(env.WEBHOOK_FORM_GENERATOR_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(questionsPayload)
@@ -124,8 +126,8 @@ function App() {
       // Set success after receiving the response
       setFormSuccess(true);
       console.log('Questions generated successfully:', questionsData);
-    } catch (err: any) {
-      setFormError(err.message || 'Erro desconhecido');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setFormLoading(false);
     }
@@ -151,8 +153,10 @@ function App() {
                   formError={formError}
                   handleGenerateForm={handleGenerateForm}
                 />
-              ) : (
+              ) : activeTab === 'dashboard' ? (
                 <FormsDashboard />
+              ) : (
+                <MeetingsAnalysis />
               )}
             </div>
           </div>

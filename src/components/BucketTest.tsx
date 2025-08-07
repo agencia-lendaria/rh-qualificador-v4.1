@@ -37,7 +37,7 @@ const BucketTest: React.FC = () => {
       setResult('Testing upload to curriculum-uploads...');
       
       const fileName = `test_${Date.now()}_${testFile.name}`;
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('curriculum-uploads')
         .upload(fileName, testFile);
 

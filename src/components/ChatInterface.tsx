@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageCircle, AlertCircle, Check, Clock, Copy, CheckCheck, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Send, AlertCircle, Check, Clock, Copy, CheckCheck, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { supabase, FormularioChatHistory } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { env } from '../config/env';
 
 interface Message {
   id: string;
@@ -39,7 +40,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load chat history from database
-  const loadChatHistory = async (sessionId: string) => {
+  const loadChatHistory = useCallback(async (sessionId: string) => {
     try {
       const { data, error } = await supabase
         .from('formularios_chat_histories')
@@ -66,14 +67,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       console.error('Error loading chat history:', error);
     }
-  };
+  }, [setMessages]);
 
   // Load chat history when session ID is set
   useEffect(() => {
     if (sessionId) {
       loadChatHistory(sessionId);
     }
-  }, [sessionId]);
+  }, [sessionId, loadChatHistory]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -107,12 +108,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
+    
+    // Restore focus to input after clearing text
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
 
     // Save user message to database
     await saveMessageToDatabase(userMessage);
 
     try {
-      const response = await fetch('https://n8nwebhook-ops.agencialendaria.ai/webhook/96bae9f3-00fd-45bd-a062-bad8a89cfba6', {
+      const response = await fetch(env.WEBHOOK_CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,14 +188,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             
             // If still no text found, try to extract from nested objects
             if (!responseText) {
-              const extractTextFromObject = (obj: any, depth = 0): string => {
+              const extractTextFromObject = (obj: Record<string, unknown>, depth = 0): string => {
                 if (depth > 3) return ''; // Prevent infinite recursion
                 
-                for (const [key, value] of Object.entries(obj)) {
+                for (const [, value] of Object.entries(obj)) {
                   if (typeof value === 'string' && value.trim().length > 10) {
                     return value;
                   } else if (typeof value === 'object' && value !== null) {
-                    const nested = extractTextFromObject(value, depth + 1);
+                    const nested = extractTextFromObject(value as Record<string, unknown>, depth + 1);
                     if (nested) return nested;
                   }
                 }
@@ -293,6 +299,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       await saveMessageToDatabase(errorMessage);
     } finally {
       setIsLoading(false);
+      // Ensure focus is restored after loading is complete
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -300,6 +310,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+      // Focus will be restored by handleSendMessage
     }
   };
 
@@ -488,7 +499,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 target.style.height = 'auto';
                 target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
               }}
-              disabled={isLoading}
+              disabled={false}
+              readOnly={isLoading}
             />
             {isLoading && (
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">

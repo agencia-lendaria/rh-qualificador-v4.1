@@ -1,9 +1,9 @@
 import React from 'react';
-import { MessageCircle, BarChart3 } from 'lucide-react';
+import { MessageCircle, BarChart3, Users } from 'lucide-react';
 
 interface NavigationProps {
-  activeTab: 'chat' | 'dashboard';
-  onTabChange: (tab: 'chat' | 'dashboard') => void;
+  activeTab: 'chat' | 'dashboard' | 'meetings';
+  onTabChange: (tab: 'chat' | 'dashboard' | 'meetings') => void;
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
@@ -46,6 +46,17 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
             >
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard de Formulários</span>
+            </button>
+            <button
+              onClick={() => onTabChange('meetings')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 font-medium ${
+                activeTab === 'meetings'
+                  ? 'bg-brand-purple text-white shadow-purple'
+                  : 'text-brand-gray hover:text-white hover:bg-brand-dark/50'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Análises de Reuniões</span>
             </button>
           </div>
         </div>
