@@ -83,7 +83,7 @@ const MeetingsAnalysis: React.FC = () => {
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from('cv-bucket')
+        .from('curriculum-uploads')
         .upload(fileName, file);
 
       if (uploadError) {
@@ -92,7 +92,7 @@ const MeetingsAnalysis: React.FC = () => {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('cv-bucket')
+        .from('curriculum-uploads')
         .getPublicUrl(fileName);
 
       // Add document to state
@@ -163,7 +163,7 @@ const MeetingsAnalysis: React.FC = () => {
         const fileName = document.url.split('/').pop();
         if (fileName) {
           await supabase.storage
-            .from('cv-bucket')
+            .from('curriculum-uploads')
             .remove([fileName]);
         }
 
