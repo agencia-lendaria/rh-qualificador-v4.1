@@ -33,3 +33,4 @@ TEST_CREDENTIALS.md
 TEST_*
 TEMP_*
 changelog
+.env
