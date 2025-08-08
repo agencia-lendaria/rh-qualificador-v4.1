@@ -139,9 +139,9 @@ function App() {
         <Route path="/formulario/:id" element={<Formulario />} />
         <Route path="/test-bucket" element={<BucketTest />} />
         <Route path="/" element={
-          <div className="flex flex-col h-screen bg-dark">
+          <div className="min-h-screen bg-dark flex flex-col">
             <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0">
               {activeTab === 'chat' ? (
                 <ChatInterface 
                   messages={messages}

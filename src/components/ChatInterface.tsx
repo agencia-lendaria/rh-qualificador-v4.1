@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, AlertCircle, Check, Clock, Copy, CheckCheck, FileText, Sparkles, MessageCircle, User, Zap } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { supabase } from '../lib/supabase';
-import { env } from '../config/env';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { Send, AlertCircle, Check, Clock, Copy, CheckCheck, FileText, Sparkles, MessageCircle, User, Zap } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import { supabase } from '../lib/supabase'
+import { env } from '../config/env'
+import { Button } from '@/components/ui/button'
 
 interface Message {
   id: string;
@@ -35,9 +36,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [srAnnouncement, setSrAnnouncement] = useState<string>('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Load chat history from database
   const loadChatHistory = useCallback(async (sessionId: string) => {
@@ -83,6 +85,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Screen reader announcement for new messages
+  useEffect(() => {
+    if (messages.length === 0) return
+    const last = messages[messages.length - 1]
+    const who = last.sender === 'assistant' ? 'assistente' : last.sender === 'user' ? 'você' : 'sistema'
+    setSrAnnouncement(`Nova mensagem de ${who}.`)
+  }, [messages])
 
   const handleCopyMessage = async (messageText: string, messageId: string) => {
     try {
@@ -335,34 +345,135 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const MessageItem = memo(function MessageItem({ message, index }: { message: Message; index: number }) {
+    return (
+      <div
+        className="animate-fade-in group"
+        style={{ animationDelay: `${index * 0.05}s` }}
+        role="listitem"
+      >
+        <div className={`flex items-start space-x-4 ${
+          message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+        }`}>
+          <div className={`avatar avatar-sm flex-shrink-0 ${
+            message.sender === 'user'
+              ? 'bg-gradient-to-br from-primary to-primary-dark'
+              : message.sender === 'assistant'
+              ? 'bg-gradient-to-br from-secondary to-secondary-dark'
+              : 'bg-text-muted'
+          }`}>
+            {message.sender === 'user' ? (
+              <User className="w-4 h-4" />
+            ) : message.sender === 'assistant' ? (
+              <Zap className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+          </div>
+
+          <div className={`flex-1 min-w-0 ${
+            message.sender === 'user' ? 'text-right' : 'text-left'
+          }`}>
+            <div className={`inline-block max-w-full chat-message ${
+              message.sender === 'user'
+                ? 'chat-message-user'
+                : message.sender === 'assistant'
+                ? 'chat-message-assistant'
+                : 'chat-message-system'
+            } px-6 py-4 relative`}>
+              {(message.sender === 'assistant' || message.sender === 'user') && (
+                <button
+                  onClick={() => handleCopyMessage(message.text, message.id)}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 hover:bg-black/10"
+                  title="Copiar mensagem"
+                  aria-label="Copiar mensagem"
+                >
+                  {copiedMessageId === message.id ? (
+                    <CheckCheck className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+
+              <div className="pr-8">
+                {message.sender === 'assistant' ? (
+                  <div className="markdown-content">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ children }) => <h1 className="text-xl font-bold mb-3 text-text-primary">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-text-primary">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-primary">{children}</h3>,
+                        h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-primary">{children}</h4>,
+                        p: ({ children }) => <p className="mb-3 leading-relaxed text-text-primary">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ol>,
+                        li: ({ children }) => <li className="text-text-primary">{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold text-text-primary">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-primary">{children}</em>,
+                        code: ({ children }) => (
+                          <code className="bg-surface px-1.5 py-0.5 rounded text-primary font-mono text-sm">{children}</code>
+                        ),
+                        pre: ({ children }) => (
+                          <pre className="bg-surface p-4 rounded-lg overflow-x-auto mb-3 border border-border">{children}</pre>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-4 border-primary pl-4 italic text-text-secondary mb-3">{children}</blockquote>
+                        ),
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-light underline">{children}</a>
+                        ),
+                      }}
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="leading-relaxed break-words">{message.text}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between mt-3 text-xs opacity-70">
+                <span>{formatTime(message.timestamp)}</span>
+                {message.sender === 'user' && (
+                  <div className="ml-2 flex items-center">{getStatusIcon(message.status)}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  })
+
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Welcome Header */}
       {messages.length === 0 && (
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="text-center max-w-2xl mx-auto animate-fade-in">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow">
-              <Sparkles className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+              <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-text-primary mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-text-primary mb-4">
               Bem-vindo ao HR Intelligence
             </h2>
-            <p className="text-text-secondary text-lg mb-8 leading-relaxed">
+            <p className="text-text-secondary text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed px-2">
               Crie job descriptions personalizadas usando IA. Descreva a vaga que você precisa e deixe nossa inteligência artificial criar o conteúdo perfeito para você.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div className="modern-card p-4 text-left">
-                <MessageCircle className="w-6 h-6 text-primary mb-2" />
-                <h3 className="font-semibold text-text-primary mb-1">Conversação Natural</h3>
-                <p className="text-sm text-text-secondary">Descreva a vaga em suas próprias palavras</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <div className="modern-card p-3 sm:p-4 text-left">
+                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary mb-2" />
+                <h3 className="font-semibold text-text-primary mb-1 text-sm sm:text-base">Conversação Natural</h3>
+                <p className="text-xs sm:text-sm text-text-secondary">Descreva a vaga em suas próprias palavras</p>
               </div>
-              <div className="modern-card p-4 text-left">
-                <FileText className="w-6 h-6 text-secondary mb-2" />
-                <h3 className="font-semibold text-text-primary mb-1">Formulários Automáticos</h3>
-                <p className="text-sm text-text-secondary">Gere formulários de candidatura automaticamente</p>
+              <div className="modern-card p-3 sm:p-4 text-left">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-secondary mb-2" />
+                <h3 className="font-semibold text-text-primary mb-1 text-sm sm:text-base">Formulários Automáticos</h3>
+                <p className="text-xs sm:text-sm text-text-secondary">Gere formulários de candidatura automaticamente</p>
               </div>
             </div>
-            <div className="text-text-muted text-sm">
+            <div className="text-text-muted text-xs sm:text-sm px-2">
               💡 Dica: Seja específico sobre requisitos, benefícios e cultura da empresa
             </div>
           </div>
@@ -371,124 +482,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Messages */}
       {messages.length > 0 && (
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto scroll-container smooth-scroll">
+          <div
+            id="messages-list"
+            className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6"
+            role="list"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label="Histórico de mensagens"
+          >
             {messages.map((message, index) => (
-              <div
-                key={message.id}
-                className="animate-fade-in group"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className={`flex items-start space-x-4 ${
-                  message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                }`}>
-                  {/* Avatar */}
-                  <div className={`avatar avatar-sm flex-shrink-0 ${
-                    message.sender === 'user' 
-                      ? 'bg-gradient-to-br from-primary to-primary-dark' 
-                      : message.sender === 'assistant'
-                      ? 'bg-gradient-to-br from-secondary to-secondary-dark'
-                      : 'bg-text-muted'
-                  }`}>
-                    {message.sender === 'user' ? (
-                      <User className="w-4 h-4" />
-                    ) : message.sender === 'assistant' ? (
-                      <Zap className="w-4 h-4" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4" />
-                    )}
-                  </div>
-
-                  {/* Message Content */}
-                  <div className={`flex-1 min-w-0 ${
-                    message.sender === 'user' ? 'text-right' : 'text-left'
-                  }`}>
-                    <div className={`inline-block max-w-full chat-message ${
-                      message.sender === 'user'
-                        ? 'chat-message-user'
-                        : message.sender === 'assistant'
-                        ? 'chat-message-assistant'
-                        : 'chat-message-system'
-                    } px-6 py-4 relative`}>
-                      {/* Copy button */}
-                      {(message.sender === 'assistant' || message.sender === 'user') && (
-                        <button
-                          onClick={() => handleCopyMessage(message.text, message.id)}
-                          className="absolute top-2 right-2 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 hover:bg-black/10"
-                          title="Copiar mensagem"
-                        >
-                          {copiedMessageId === message.id ? (
-                            <CheckCheck className="w-4 h-4" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-
-                      {/* Message content */}
-                      <div className="pr-8">
-                        {message.sender === 'assistant' ? (
-                          <div className="markdown-content">
-                            <ReactMarkdown
-                              components={{
-                                h1: ({ children }) => <h1 className="text-xl font-bold mb-3 text-text-primary">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-text-primary">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-primary">{children}</h3>,
-                                h4: ({ children }) => <h4 className="text-sm font-semibold mb-1 text-primary">{children}</h4>,
-                                p: ({ children }) => <p className="mb-3 leading-relaxed text-text-primary">{children}</p>,
-                                ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1 text-text-primary ml-4">{children}</ol>,
-                                li: ({ children }) => <li className="text-text-primary">{children}</li>,
-                                strong: ({ children }) => <strong className="font-semibold text-text-primary">{children}</strong>,
-                                em: ({ children }) => <em className="italic text-primary">{children}</em>,
-                                code: ({ children }) => (
-                                  <code className="bg-surface px-1.5 py-0.5 rounded text-primary font-mono text-sm">
-                                    {children}
-                                  </code>
-                                ),
-                                pre: ({ children }) => (
-                                  <pre className="bg-surface p-4 rounded-lg overflow-x-auto mb-3 border border-border">
-                                    {children}
-                                  </pre>
-                                ),
-                                blockquote: ({ children }) => (
-                                  <blockquote className="border-l-4 border-primary pl-4 italic text-text-secondary mb-3">
-                                    {children}
-                                  </blockquote>
-                                ),
-                                a: ({ href, children }) => (
-                                  <a 
-                                    href={href} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:text-primary-light underline"
-                                  >
-                                    {children}
-                                  </a>
-                                ),
-                              }}
-                            >
-                              {message.text}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p className="leading-relaxed break-words">{message.text}</p>
-                        )}
-                      </div>
-
-                      {/* Message footer */}
-                      <div className="flex items-center justify-between mt-3 text-xs opacity-70">
-                        <span>{formatTime(message.timestamp)}</span>
-                        {message.sender === 'user' && (
-                          <div className="ml-2 flex items-center">
-                            {getStatusIcon(message.status)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <MessageItem key={message.id} message={message} index={index} />
             ))}
           </div>
         </div>
@@ -496,12 +500,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Generate Form Button */}
       {messages.length > 0 && messages[messages.length-1].sender === 'assistant' && (
-        <div className="px-4 py-2 border-t border-border bg-surface">
+        <div className="px-3 sm:px-4 py-2 border-t border-border bg-surface">
           <div className="max-w-4xl mx-auto flex justify-center">
             <button
               onClick={handleGenerateForm}
               disabled={formLoading}
-              className={`btn-modern btn-success shimmer-button ${
+              className={`btn-modern btn-success shimmer-button text-sm sm:text-base px-4 sm:px-6 ${
                 formLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -539,8 +543,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Modern Input Area */}
       <div className="border-t border-border bg-surface/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-end space-x-3">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-end space-x-2 sm:space-x-3">
             {/* Input Container */}
             <div className="flex-1 relative">
               <textarea
@@ -549,12 +553,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={isLoading ? "Aguardando resposta..." : "Digite sua mensagem... (Shift + Enter para nova linha)"}
-                className="input-modern w-full min-h-[52px] max-h-32 resize-none pr-12"
+                className="input-modern w-full min-h-[48px] sm:min-h-[52px] max-h-28 sm:max-h-32 resize-none pr-10 sm:pr-12 text-sm sm:text-base"
                 rows={1}
+                aria-label="Mensagem"
+                aria-controls="messages-list"
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = 'auto';
-                  target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
+                  target.style.height = `${Math.min(target.scrollHeight, window.innerWidth < 640 ? 112 : 128)}px`;
                 }}
                 disabled={isLoading}
               />
@@ -572,22 +578,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             
             {/* Send Button */}
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputText.trim() || isLoading}
-              className={`btn-modern ${
-                !inputText.trim() || isLoading
-                  ? 'bg-surface-elevated text-text-muted cursor-not-allowed'
-                  : 'btn-primary shimmer-button'
-              } p-3 rounded-xl`}
-            >
-              <Send className={`w-5 h-5 ${isLoading ? 'opacity-50' : ''}`} />
-            </button>
+            <Button onClick={handleSendMessage} disabled={!inputText.trim() || isLoading} className="p-2.5 sm:p-3 rounded-xl flex-shrink-0">
+              <Send className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'opacity-50' : ''}`} />
+            </Button>
           </div>
           
           {/* Enhanced Typing Indicator */}
           {isLoading && (
-            <div className="typing-indicator mt-3 justify-center">
+            <div className="typing-indicator mt-2 sm:mt-3 justify-center" role="status" aria-live="polite">
               <div className="avatar avatar-sm bg-gradient-to-br from-secondary to-secondary-dark mr-2">
                 <Zap className="w-3 h-3" />
               </div>
@@ -596,32 +594,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="typing-dot"></div>
                 <div className="typing-dot"></div>
               </div>
-              <span className="ml-2 text-text-secondary">HR Intelligence está processando...</span>
+              <span className="ml-2 text-text-secondary text-sm">HR Intelligence está processando...</span>
             </div>
           )}
 
           {/* Quick Actions */}
           {!isLoading && inputText.trim() === '' && messages.length === 0 && (
-            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+            <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 justify-center" aria-label="Sugestões rápidas">
               {[
                 "Preciso de uma vaga para desenvolvedor frontend",
                 "Quero criar um job description para marketing",
                 "Vaga para analista de dados júnior",
                 "Posição de gerente de projetos"
               ].map((suggestion, index) => (
-                <button
+                <Button
                   key={index}
                   onClick={() => setInputText(suggestion)}
-                  className="btn-modern btn-secondary text-sm px-3 py-2 text-text-secondary hover:text-text-primary animate-fade-in"
+                  variant="secondary"
+                  className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 text-text-secondary hover:text-text-primary animate-fade-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {suggestion}
-                </button>
+                </Button>
               ))}
             </div>
           )}
         </div>
       </div>
+      {/* Live region for screen readers announcing new messages */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="false">{srAnnouncement}</div>
     </div>
   );
 };

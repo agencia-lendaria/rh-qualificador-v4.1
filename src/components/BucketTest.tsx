@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const BucketTest: React.FC = () => {
   const [testFile, setTestFile] = useState<File | null>(null);
@@ -58,45 +61,40 @@ const BucketTest: React.FC = () => {
 
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Bucket Test</h2>
-      
-      <div className="space-y-4">
-        <button
-          onClick={() => testBucket('curriculum-uploads')}
-          className="w-full p-2 bg-blue-500 text-white rounded"
-        >
-          Test curriculum-uploads bucket
-        </button>
-        
-        <button
-          onClick={() => testBucket('cv-bucket')}
-          className="w-full p-2 bg-green-500 text-white rounded"
-        >
-          Test cv-bucket
-        </button>
-        
-        <div>
-          <input
-            type="file"
-            onChange={(e) => setTestFile(e.target.files?.[0] || null)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        
-        <button
-          onClick={testUpload}
-          disabled={!testFile}
-          className="w-full p-2 bg-purple-500 text-white rounded disabled:bg-gray-300"
-        >
-          Test Upload
-        </button>
-        
-        <div className="p-4 bg-gray-100 rounded">
-          <pre className="text-sm">{result}</pre>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Bucket Test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => testBucket('curriculum-uploads')}
+          >
+            Test curriculum-uploads bucket
+          </Button>
+
+          <Button
+            variant="success"
+            className="w-full"
+            onClick={() => testBucket('cv-bucket')}
+          >
+            Test cv-bucket
+          </Button>
+
+          <Input type="file" onChange={(e) => setTestFile(e.target.files?.[0] || null)} />
+
+          <Button className="w-full" onClick={testUpload} disabled={!testFile}>
+            Test Upload
+          </Button>
+
+          <div className="rounded-md border bg-muted p-4">
+            <pre className="text-sm whitespace-pre-wrap break-words">{result}</pre>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 };
 
 export default BucketTest; 

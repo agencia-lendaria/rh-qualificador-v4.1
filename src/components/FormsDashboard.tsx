@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ArrowLeft, 
   Eye, 
   Users, 
   FileText, 
-  Search, 
-  Filter,
   Download,
   Trash2,
   ExternalLink,
@@ -21,7 +19,13 @@ import {
   Target,
   Zap
 } from 'lucide-react';
+import { Filters as DashboardFilters, type FilterStatus, type SortBy } from '@/components/forms-dashboard/Filters'
+import { Header as DashboardHeader } from '@/components/forms-dashboard/Header'
+import { FormCard } from '@/components/forms-dashboard/FormCard'
 import { supabase, FormularioPergunta, FormularioResposta, FormularioCandidateAnalysis } from '../lib/supabase';
+import { useFormsList } from '@/hooks/useQueries/useFormsQueries'
+import { Button } from '@/components/ui/button'
+import { VirtualizedList } from '@/components/VirtualizedList'
 
 interface FormWithStats {
   id: number;
@@ -29,6 +33,11 @@ interface FormWithStats {
   created_at: string;
   responses_count: number;
   questions_count: number;
+  questionCount: number;        // Número de perguntas do formulário
+  candidateCount: number;       // Número de candidatos que se candidataram
+  averageScore: number | null;  // Score médio dos candidatos (se houver análise)
+  lastActivity: string | null;  // Data da última candidatura
+  status: 'active' | 'draft' | 'closed'; // Status do formulário
 }
 
 interface FormResponse {
@@ -43,6 +52,367 @@ interface FormResponse {
 
 type ViewMode = 'forms' | 'responses' | 'applicant' | 'analysis';
 
+
+// Types for components (removed unused virtualizer types)
+
+// Memoized Response Card Component
+const ResponseCard = React.memo<{
+  response: FormResponse;
+  index: number;
+  formQuestions: FormularioPergunta | null;
+  responsesWithAnalysis: Set<string>;
+  onApplicantClick: (applicant: FormResponse) => void;
+  onViewAnalysis: (applicant: FormResponse) => void;
+}>(({
+  response,
+  index,
+  formQuestions,
+  responsesWithAnalysis,
+  onApplicantClick,
+  onViewAnalysis
+}) => {
+  const handleCardClick = useCallback(() => {
+    onApplicantClick(response);
+  }, [response, onApplicantClick]);
+
+  const handleProfileClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onApplicantClick(response);
+  }, [response, onApplicantClick]);
+
+  const handleAnalysisClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewAnalysis(response);
+  }, [response, onViewAnalysis]);
+
+  const formattedDate = useMemo(() => {
+    return response.created_at ? new Date(response.created_at).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : 'N/A';
+  }, [response.created_at]);
+
+  const questionsCount = useMemo(() => {
+    return formQuestions ? Object.keys(formQuestions).filter(key => {
+      const value = formQuestions[key as keyof FormularioPergunta];
+      return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+    }).length : 0;
+  }, [formQuestions]);
+
+  const hasAnalysis = useMemo(() => {
+    return responsesWithAnalysis.has(response.response_id || '');
+  }, [responsesWithAnalysis, response.response_id]);
+
+  return (
+    <div
+      onClick={handleCardClick}
+      className="modern-card cursor-pointer group animate-fade-in hover:scale-105 transition-all duration-300"
+      style={{ animationDelay: `${index * 0.05}s` }}
+    >
+      {/* Candidate Header */}
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="avatar bg-gradient-to-br from-primary to-primary-dark">
+          <User className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors truncate">
+            {response.user_name}
+          </h3>
+          <p className="text-sm text-text-secondary truncate">
+            {response.user_email || response.response_id}
+          </p>
+        </div>
+      </div>
+
+      {/* Submission Info */}
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-text-secondary">Data de submissão</span>
+          <span className="text-text-primary font-medium">
+            {formattedDate}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-text-secondary">Respostas</span>
+          <span className="text-text-primary font-medium">
+            {Object.keys(response.answers).length} de {questionsCount}
+          </span>
+        </div>
+      </div>
+
+      {/* Status Badges */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {hasAnalysis && (
+          <div className="status-badge status-success">
+            <Award className="w-3 h-3" />
+            <span>Analisado</span>
+          </div>
+        )}
+        {response.cv_bucket_link && (
+          <div className="status-badge status-info">
+            <FileText className="w-3 h-3" />
+            <span>CV Anexo</span>
+          </div>
+        )}
+        {!hasAnalysis && (
+          <div className="status-badge status-warning">
+            <Clock className="w-3 h-3" />
+            <span>Pendente</span>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center space-x-2 pt-4 border-t border-border">
+        <Button 
+          onClick={handleProfileClick}
+          variant="secondary"
+          className="text-xs px-3 py-2 flex-1"
+        >
+          <Eye className="w-3 h-3" />
+          <span>Ver Perfil</span>
+        </Button>
+        
+        {hasAnalysis && (
+          <Button
+            onClick={handleAnalysisClick}
+            variant="success"
+            className="text-xs px-3 py-2"
+          >
+            <BarChart3 className="w-3 h-3" />
+            <span>Análise</span>
+          </Button>
+        )}
+        
+        {response.cv_bucket_link && (
+          <a
+            href={response.cv_bucket_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="btn-modern btn-primary text-xs px-3 py-2"
+          >
+            <FileText className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+});
+
+// Memoized Header Actions Component
+const HeaderActions = React.memo<{
+  selectedForm: FormWithStats;
+  onExport: (formName: string) => void;
+  onDelete: (formId: number) => void;
+}>(({
+  selectedForm,
+  onExport,
+  onDelete
+}) => {
+  const handleExport = useCallback(() => {
+    onExport(selectedForm.vaga_do_form);
+  }, [onExport, selectedForm.vaga_do_form]);
+
+  const handleDelete = useCallback(() => {
+    onDelete(selectedForm.id);
+  }, [onDelete, selectedForm.id]);
+
+  return (
+    <div className="flex items-center space-x-3">
+      <button onClick={handleExport} className="btn-modern btn-success shimmer-button">
+        <Download className="w-4 h-4" />
+        <span>Exportar</span>
+      </button>
+      <button onClick={handleDelete} className="btn-modern btn-error">
+        <Trash2 className="w-4 h-4" />
+        <span>Excluir</span>
+      </button>
+    </div>
+  );
+});
+
+// Memoized Responses Header Component
+const ResponsesHeader = React.memo<{
+  formResponses: FormResponse[];
+  formQuestions: FormularioPergunta | null;
+  responsesWithAnalysis: Set<string>;
+}>(({
+  formResponses,
+  formQuestions,
+  responsesWithAnalysis
+}) => {
+  const questionsCount = useMemo(() => {
+    return formQuestions ? Object.keys(formQuestions).filter(key => {
+      const value = formQuestions[key as keyof FormularioPergunta];
+      return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+    }).length : 0;
+  }, [formQuestions]);
+
+  const candidatureText = useMemo(() => {
+    return `${formResponses.length} candidatura${formResponses.length !== 1 ? 's' : ''}`;
+  }, [formResponses.length]);
+
+  return (
+    <div className="flex items-center space-x-4 text-sm text-text-secondary mt-1">
+      <div className="flex items-center space-x-1">
+        <Users className="w-3 h-3" />
+        <span>{candidatureText}</span>
+      </div>
+      <div className="flex items-center space-x-1">
+        <FileText className="w-3 h-3" />
+        <span>{questionsCount} perguntas</span>
+      </div>
+      <div className="flex items-center space-x-1">
+        <Award className="w-3 h-3" />
+        <span>{responsesWithAnalysis.size} analisados</span>
+      </div>
+    </div>
+  );
+});
+
+// Memoized Applicant Summary Component
+const ApplicantSummary = React.memo<{
+  selectedApplicant: FormResponse;
+  formQuestions: FormularioPergunta | null;
+  responsesWithAnalysis: Set<string>;
+}>(({
+  selectedApplicant,
+  formQuestions,
+  responsesWithAnalysis
+}) => {
+  const answersCount = useMemo(() => {
+    return Object.keys(selectedApplicant.answers).length;
+  }, [selectedApplicant.answers]);
+
+  const totalQuestions = useMemo(() => {
+    return formQuestions ? Object.keys(formQuestions).filter(key => {
+      const value = formQuestions[key as keyof FormularioPergunta];
+      return key.startsWith('q') && value && typeof value === 'string' && value.trim();
+    }).length : 0;
+  }, [formQuestions]);
+
+  const analysisStatus = useMemo(() => {
+    const hasAnalysis = responsesWithAnalysis.has(selectedApplicant.response_id || '');
+    return {
+      symbol: hasAnalysis ? '✓' : '...',
+      className: hasAnalysis ? 'text-success' : 'text-warning'
+    };
+  }, [responsesWithAnalysis, selectedApplicant.response_id]);
+
+  return (
+    <div className="modern-card">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center">
+          <User className="w-5 h-5 text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-text-primary">Resumo da Candidatura</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-primary mb-1">
+            {answersCount}
+          </div>
+          <div className="text-sm text-text-secondary uppercase tracking-wide">
+            Respostas Enviadas
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-secondary mb-1">
+            {totalQuestions}
+          </div>
+          <div className="text-sm text-text-secondary uppercase tracking-wide">
+            Perguntas Totais
+          </div>
+        </div>
+        <div className="text-center">
+          <div className={`text-2xl font-bold mb-1 ${analysisStatus.className}`}>
+            {analysisStatus.symbol}
+          </div>
+          <div className="text-sm text-text-secondary uppercase tracking-wide">
+            Status Análise
+          </div>
+        </div>
+      </div>
+      
+      {selectedApplicant.cv_bucket_link && (
+        <div className="mt-6 pt-6 border-t border-border">
+          <div className="flex items-center justify-center">
+            <div className="status-badge status-success">
+              <FileText className="w-3 h-3" />
+              <span>Currículo Anexado</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Memoized Answers List Component
+const AnswersList = React.memo<{
+  answers: { [key: string]: string };
+  formQuestions: FormularioPergunta | null;
+}>(({
+  answers,
+  formQuestions
+}) => {
+  const answerItems = useMemo(() => {
+    return Object.keys(answers).map((answerKey, index) => {
+      const questionNumber = answerKey.replace('a', '');
+      const questionKey = `q${questionNumber}` as keyof FormularioPergunta;
+      const question = formQuestions?.[questionKey];
+      
+      if (!question || typeof question !== 'string') return null;
+      
+      return {
+        key: answerKey,
+        questionNumber,
+        question,
+        answer: answers[answerKey],
+        index
+      };
+    }).filter(Boolean);
+  }, [answers, formQuestions]);
+
+  return (
+    <>
+      {answerItems.map((item) => {
+        if (!item) return null;
+        
+        return (
+          <div 
+            key={item.key} 
+            className="modern-card animate-fade-in"
+            style={{ animationDelay: `${item.index * 0.05}s` }}
+          >
+            <div className="flex items-start space-x-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-primary">
+                  {item.questionNumber}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-semibold text-text-primary mb-4 leading-relaxed">
+                  {item.question}
+                </h4>
+                <div className="bg-surface p-4 rounded-lg border-l-4 border-primary">
+                  <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
+                    {item.answer}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
 const FormsDashboard: React.FC = () => {
   const [forms, setForms] = useState<FormWithStats[]>([]);
   const [selectedForm, setSelectedForm] = useState<FormWithStats | null>(null);
@@ -55,69 +425,135 @@ const FormsDashboard: React.FC = () => {
   const [loadingResponses, setLoadingResponses] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'with-responses' | 'no-responses'>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('date');
   const [responsesWithAnalysis, setResponsesWithAnalysis] = useState<Set<string>>(new Set());
 
+  const { data: formsData } = useFormsList()
+
+  // Dashboard Statistics State
+  const [dashboardStats, setDashboardStats] = useState({
+    totalForms: 0,
+    totalCandidates: 0,
+    activeFormsCount: 0,
+    averagePerForm: 0
+  });
+
   useEffect(() => {
-    loadForms();
-  }, []);
+    async function loadDashboardData() {
+      if (!formsData) return
+      setLoading(true)
+      try {
+        // 1. Busca todos os formulários (dados básicos já vêm do formsData)
+        const formsData_local = formsData || [];
+        
+        // 2. Para cada formulário, busca dados adicionais em paralelo
+        const formsWithStats = await Promise.all(
+          formsData_local.map(async (form: { id: number; vaga_do_form: string; created_at: string }) => {
+            // Executa todas as consultas em paralelo para cada formulário
+            const [questionsResult, candidateCountResult, analysisResult, lastResponseResult] = 
+              await Promise.all([
+                // Consulta perguntas
+                supabase.from('formularios_perguntas').select('*').eq('id', form.id).single(),
+                // Conta candidatos
+                supabase.from('formularios_respostas').select('*', { count: 'exact', head: true }).eq('id', form.id),
+                // Busca análises 
+                supabase.from('formularios_candidate_analysis').select('overall_score').eq('job_title', form.vaga_do_form),
+                // Última atividade
+                supabase.from('formularios_respostas').select('created_at').eq('id', form.id).order('created_at', { ascending: false }).limit(1)
+              ]);
+              
+            // Processa questões (q1 até q15)
+            let questionCount = 0;
+            if (questionsResult.data) {
+              for (let i = 1; i <= 15; i++) {
+                const questionKey = `q${i}` as keyof FormularioPergunta;
+                const question = questionsResult.data[questionKey];
+                if (question && typeof question === 'string' && question.trim()) {
+                  questionCount++;
+                }
+              }
+            }
 
-  const loadForms = async () => {
-    try {
-      setLoading(true);
-      
-      // Get all forms with response counts
-      const { data: formsData, error: formsError } = await supabase
-        .from('formularios_nomes')
-        .select('*')
-        .order('id', { ascending: false });
+            // Determina status baseado na quantidade de perguntas
+            const status = questionCount === 0 ? 'draft' : 'active';
+            
+            // Conta candidatos
+            const candidateCount = candidateCountResult.count || 0;
+            
+            // Calcula score médio
+            const averageScore = analysisResult.data && analysisResult.data.length > 0
+              ? analysisResult.data.reduce((sum, item) => sum + (item.overall_score || 0), 0) / analysisResult.data.length
+              : null;
+              
+            // Última atividade
+            const lastActivity = lastResponseResult.data && lastResponseResult.data.length > 0 
+              ? lastResponseResult.data[0].created_at 
+              : null;
 
-      if (formsError) {
-        console.error('Error loading forms:', formsError);
-        return;
+            return {
+              ...form,
+              questionCount,
+              candidateCount,
+              averageScore,
+              lastActivity,
+              status,
+              responses_count: candidateCount,
+              questions_count: questionCount
+            };
+          })
+        );
+
+        // 3. Calcula estatísticas agregadas
+        const stats = {
+          totalForms: formsWithStats.length,
+          totalCandidates: formsWithStats.reduce((sum, form) => sum + form.candidateCount, 0),
+          activeFormsCount: formsWithStats.filter(form => form.status === 'active').length,
+          averagePerForm: formsWithStats.length > 0 
+            ? Math.round(formsWithStats.reduce((sum, form) => sum + form.candidateCount, 0) / formsWithStats.length)
+            : 0
+        };
+        
+        setForms(formsWithStats);
+        setDashboardStats(stats);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false)
       }
-
-      // Get response counts and actual question counts for each form
-      const formsWithStats = await Promise.all(
-        formsData.map(async (form) => {
-          const { count: responsesCount } = await supabase
-            .from('formularios_respostas')
-            .select('*', { count: 'exact', head: true })
-            .eq('id', form.id);
-
-          // Load actual questions data to count non-empty questions
-          const { data: questionsData, error: questionsError } = await supabase
-            .from('formularios_perguntas')
-            .select('*')
-            .eq('id', form.id)
-            .single();
-
-          let questionsCount = 0;
-          if (questionsData && !questionsError) {
-            // Count only non-empty questions
-            questionsCount = Object.keys(questionsData).filter(key => {
-              const value = questionsData[key as keyof FormularioPergunta];
-              return key.startsWith('q') && value && typeof value === 'string' && value.trim();
-            }).length;
-          }
-
-          return {
-            ...form,
-            responses_count: responsesCount || 0,
-            questions_count: questionsCount
-          };
-        })
-      );
-
-      setForms(formsWithStats);
-    } catch (error) {
-      console.error('Error loading forms:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+    loadDashboardData()
+  }, [formsData])
 
-  const loadFormResponses = async (formId: number) => {
+  // Implementa filtros e ordenação baseado no TEMP_QUERY_DASHBOARD.md
+  const filteredAndSortedForms = useMemo(() => {
+    return forms
+      .filter(form => {
+        // Filtro de busca textual no nome da vaga
+        const matchesSearch = form.vaga_do_form.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Filtro por status
+        const matchesFilter = filterStatus === 'all' || form.status === filterStatus;
+        
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        // Ordenação conforme especificado no documento
+        switch (sortBy) {
+          case 'name':
+            return a.vaga_do_form.localeCompare(b.vaga_do_form);
+          case 'candidates':
+            return b.candidateCount - a.candidateCount;
+          case 'score':
+            return (b.averageScore || 0) - (a.averageScore || 0);
+          case 'date':
+          default:
+            return b.id - a.id; // Mais recentes primeiro
+        }
+      });
+  }, [forms, searchTerm, filterStatus, sortBy]);
+
+  const loadFormResponses = useCallback(async (formId: number) => {
     try {
       setLoadingResponses(true);
       
@@ -194,28 +630,28 @@ const FormsDashboard: React.FC = () => {
     } finally {
       setLoadingResponses(false);
     }
-  };
+  }, []);
 
-  const handleFormClick = (form: FormWithStats) => {
+  const handleFormClick = useCallback((form: FormWithStats) => {
     setSelectedForm(form);
     setViewMode('responses');
     loadFormResponses(form.id);
-  };
+  }, [loadFormResponses]);
 
-  const handleApplicantClick = (applicant: FormResponse) => {
+  const handleApplicantClick = useCallback((applicant: FormResponse) => {
     setSelectedApplicant(applicant);
     setViewMode('applicant');
-  };
+  }, []);
 
-  const handleBackToForms = () => {
+  const handleBackToForms = useCallback(() => {
     setSelectedForm(null);
     setFormResponses([]);
     setFormQuestions(null);
     setSelectedApplicant(null);
     setViewMode('forms');
-  };
+  }, []);
 
-  const loadCandidateAnalysis = async (responseId: string) => {
+  const loadCandidateAnalysis = useCallback(async (responseId: string) => {
     try {
       setLoadingAnalysis(true);
       
@@ -236,31 +672,23 @@ const FormsDashboard: React.FC = () => {
     } finally {
       setLoadingAnalysis(false);
     }
-  };
+  }, []);
 
-  const handleBackToResponses = () => {
+  const handleBackToResponses = useCallback(() => {
     setSelectedApplicant(null);
     setCandidateAnalysis(null);
     setViewMode('responses');
-  };
+  }, []);
 
-  const handleViewAnalysis = async (applicant: FormResponse) => {
+  const handleViewAnalysis = useCallback(async (applicant: FormResponse) => {
     setSelectedApplicant(applicant);
     setViewMode('analysis');
     await loadCandidateAnalysis(applicant.response_id || '');
-  };
+  }, [loadCandidateAnalysis]);
 
-  const filteredForms = forms.filter(form => {
-    const matchesSearch = form.vaga_do_form.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = 
-      filterStatus === 'all' ||
-      (filterStatus === 'with-responses' && form.responses_count > 0) ||
-      (filterStatus === 'no-responses' && form.responses_count === 0);
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Removido antigo filteredForms - agora usa filteredAndSortedForms implementado acima
 
-  const exportResponses = (formId: number, formName: string) => {
+  const exportResponses = useCallback((formName: string) => {
     const responses = formResponses.map(response => {
       const row: Record<string, string> = {
         'ID da Resposta': response.response_id || '',
@@ -293,9 +721,9 @@ const FormsDashboard: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [formResponses]);
 
-  const deleteForm = async (formId: number) => {
+  const deleteForm = useCallback(async (formId: number) => {
     if (!confirm('Tem certeza que deseja excluir este formulário? Esta ação não pode ser desfeita.')) {
       return;
     }
@@ -319,15 +747,15 @@ const FormsDashboard: React.FC = () => {
         .delete()
         .eq('id', formId);
 
-      // Reload forms
-      loadForms();
+      // Reload forms via query invalidation in future; for now, rebuild stats
+      setForms((prev) => prev.filter((f) => f.id !== formId))
       if (selectedForm?.id === formId) {
         handleBackToForms();
       }
     } catch (error) {
       console.error('Error deleting form:', error);
     }
-  };
+  }, [selectedForm, handleBackToForms]);
 
   if (loading) {
     return (
@@ -343,91 +771,114 @@ const FormsDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Modern Header */}
-      <div className="glass-effect border-b border-border px-6 py-6 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center animate-pulse-glow">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-text-primary">
-                  {viewMode === 'forms' && 'Dashboard de Formulários'}
-                  {viewMode === 'responses' && 'Candidaturas'}
-                  {viewMode === 'applicant' && 'Perfil do Candidato'}
-                  {viewMode === 'analysis' && 'Análise Inteligente'}
-                </h1>
-                <p className="text-text-secondary">
-                  {viewMode === 'forms' && 'Gerencie e monitore seus formulários de candidatura'}
-                  {viewMode === 'responses' && selectedForm && `${selectedForm.vaga_do_form} • ${formResponses.length} candidatos • ${responsesWithAnalysis.size} analisados`}
-                  {viewMode === 'applicant' && selectedApplicant && `${selectedApplicant.user_name} • ${selectedApplicant.user_email}`}
-                  {viewMode === 'analysis' && selectedApplicant && `Análise detalhada de ${selectedApplicant.user_name}`}
-                </p>
+      <DashboardHeader
+        title={
+          (viewMode === 'forms' && 'Dashboard de Formulários') ||
+          (viewMode === 'responses' && 'Candidaturas') ||
+          (viewMode === 'applicant' && 'Perfil do Candidato') ||
+          (viewMode === 'analysis' && 'Análise Inteligente') ||
+          ''
+        }
+        subtitle={
+          (viewMode === 'forms' && 'Gerencie e monitore seus formulários de candidatura') ||
+          (viewMode === 'responses' && selectedForm && `${selectedForm.vaga_do_form} • ${formResponses.length} candidatos • ${responsesWithAnalysis.size} analisados`) ||
+          (viewMode === 'applicant' && selectedApplicant && `${selectedApplicant.user_name} • ${selectedApplicant.user_email}`) ||
+          (viewMode === 'analysis' && selectedApplicant && `Análise detalhada de ${selectedApplicant.user_name}`) ||
+          undefined
+        }
+        right={viewMode === 'responses' && selectedForm ? (
+          <HeaderActions
+            selectedForm={selectedForm}
+            onExport={exportResponses}
+            onDelete={deleteForm}
+          />
+        ) : undefined}
+      />
+
+      {/* Content */}
+      <div className="flex-1 min-h-0">
+        {viewMode === 'forms' && (
+          // Forms List View
+          <div className="flex flex-col">
+            {/* Statistics Cards */}
+            <div className="p-4 md:p-6 border-b border-border bg-gradient-to-r from-background to-surface">
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                  {/* Total Forms */}
+                  <div className="modern-card bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-primary-dark rounded-lg sm:rounded-xl flex items-center justify-center">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted uppercase tracking-wide">Total</p>
+                        <p className="text-lg sm:text-xl font-bold text-text-primary">{dashboardStats.totalForms}</p>
+                        <p className="text-xs text-text-secondary">Formulários</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Total Candidates */}
+                  <div className="modern-card bg-gradient-to-br from-success/5 to-success/10 border-success/20">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-success to-success-light rounded-lg sm:rounded-xl flex items-center justify-center">
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted uppercase tracking-wide">Total</p>
+                        <p className="text-lg sm:text-xl font-bold text-text-primary">{dashboardStats.totalCandidates}</p>
+                        <p className="text-xs text-text-secondary">Candidatos</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Forms */}
+                  <div className="modern-card bg-gradient-to-br from-secondary/5 to-secondary/10 border-secondary/20">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-secondary to-secondary-dark rounded-lg sm:rounded-xl flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted uppercase tracking-wide">Ativos</p>
+                        <p className="text-lg sm:text-xl font-bold text-text-primary">{dashboardStats.activeFormsCount}</p>
+                        <p className="text-xs text-text-secondary">Formulários</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Average per Form */}
+                  <div className="modern-card bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-warning to-warning-light rounded-lg sm:rounded-xl flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-muted uppercase tracking-wide">Média</p>
+                        <p className="text-lg sm:text-xl font-bold text-text-primary">{dashboardStats.averagePerForm}</p>
+                        <p className="text-xs text-text-secondary">Por formulário</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
-            {viewMode === 'responses' && selectedForm && (
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => exportResponses(selectedForm.id, selectedForm.vaga_do_form)}
-                  className="btn-modern btn-success shimmer-button"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Exportar</span>
-                </button>
-                <button
-                  onClick={() => deleteForm(selectedForm.id)}
-                  className="btn-modern btn-error"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Excluir</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {viewMode === 'forms' && (
-          // Forms List View
-          <div className="flex flex-col h-full">
             {/* Search and Filter */}
-            <div className="p-6 border-b border-brand-purple/20">
-              <div className="flex items-center space-x-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-brand-gray" />
-                  <input
-                    type="text"
-                    placeholder="Buscar formulários..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-brand-darker/50 border border-brand-purple/20 rounded-lg text-white placeholder-brand-gray focus:outline-none focus:border-brand-purple"
-                  />
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Filter className="w-4 h-4 text-brand-gray" />
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as FormResponse['status'])}
-                    className="bg-brand-darker/50 border border-brand-purple/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-purple"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="with-responses">Com respostas</option>
-                    <option value="no-responses">Sem respostas</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            <DashboardFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filterStatus={filterStatus}
+              onFilterChange={setFilterStatus}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+            />
 
             {/* Modern Forms Grid */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-7xl mx-auto px-6 py-8">
-                {filteredForms.length === 0 ? (
+            <div className="flex-1 min-h-0 overflow-y-auto scroll-container smooth-scroll">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+                {filteredAndSortedForms.length === 0 ? (
                   <div className="text-center py-20 animate-fade-in">
                     <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                       <FileText className="w-12 h-12 text-text-muted" />
@@ -447,132 +898,37 @@ const FormsDashboard: React.FC = () => {
                       </button>
                     )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredForms.map((form, index) => (
-                      <div
-                        key={form.id}
-                        onClick={() => handleFormClick(form)}
-                        className="modern-card cursor-pointer group animate-fade-in hover:scale-105 transition-all duration-300 relative"
-                        style={{ animationDelay: `${index * 0.05}s` }}
-                      >
-                        {/* Card Header */}
-                        <div className="flex items-start justify-between mb-6">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center flex-shrink-0">
-                                <FileText className="w-4 h-4 text-white" />
-                              </div>
-                              <div className="text-xs text-text-muted font-medium uppercase tracking-wider">
-                                Form #{form.id}
-                              </div>
-                            </div>
-                            <h3 className="text-lg font-bold text-text-primary mb-2 group-hover:text-primary transition-colors line-clamp-2">
-                              {form.vaga_do_form}
-                            </h3>
-                            <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                              <Calendar className="w-3 h-3" />
-                              <span>
-                                {form.created_at ? new Date(form.created_at).toLocaleDateString('pt-BR', {
-                                  day: '2-digit',
-                                  month: 'short'
-                                }) : 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Status Indicator */}
-                          <div className={`status-badge ${
-                            form.responses_count > 0 ? 'status-success' : 'status-info'
-                          }`}>
-                            {form.responses_count > 0 ? (
-                              <>
-                                <CheckCircle className="w-3 h-3" />
-                                <span>Ativo</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3 h-3" />
-                                <span>Pendente</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Metrics */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-primary mb-1">
-                              {form.responses_count}
-                            </div>
-                            <div className="text-xs text-text-secondary uppercase tracking-wide">
-                              Candidatos
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-secondary mb-1">
-                              {form.questions_count}
-                            </div>
-                            <div className="text-xs text-text-secondary uppercase tracking-wide">
-                              Perguntas
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        {form.responses_count > 0 && (
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-text-secondary">Engajamento</span>
-                              <span className="text-xs font-medium text-text-primary">
-                                {Math.min(100, form.responses_count * 10)}%
-                              </span>
-                            </div>
-                            <div className="progress-bar">
-                              <div 
-                                className="progress-fill"
-                                style={{ width: `${Math.min(100, form.responses_count * 10)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-4 border-t border-border">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(`/formulario/${form.id}`, '_blank');
-                            }}
-                            className="btn-modern btn-secondary text-xs px-3 py-2"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            <span>Visualizar</span>
-                          </button>
-                          
-                          {form.responses_count > 0 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                exportResponses(form.id, form.vaga_do_form);
-                              }}
-                              className="btn-modern btn-success text-xs px-3 py-2"
-                            >
-                              <Download className="w-3 h-3" />
-                              <span>Exportar</span>
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Performance Indicator */}
-                        {form.responses_count >= 5 && (
-                          <div className="absolute -top-2 -right-2">
-                            <div className="w-6 h-6 bg-gradient-to-br from-success to-success-light rounded-full flex items-center justify-center animate-pulse-glow">
-                              <TrendingUp className="w-3 h-3 text-white" />
-                            </div>
-                          </div>
-                        )}
+                ) : filteredAndSortedForms.length > 30 ? (
+                  // Use virtualization for very large form lists
+                  <VirtualizedList
+                    items={filteredAndSortedForms}
+                    height={600}
+                    estimateSize={() => 320}
+                    getItemKey={(form) => `form-${form.id}`}
+                    className="w-full px-6"
+                    renderItem={(form) => (
+                      <div className="pb-6 w-full">
+                        <FormCard
+                          key={form.id}
+                          form={form}
+                          onFormClick={handleFormClick}
+                          onExport={exportResponses}
+                          onDelete={deleteForm}
+                        />
                       </div>
+                    )}
+                  />
+                ) : (
+                  // Use regular grid for smaller lists  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+                    {filteredAndSortedForms.map((form) => (
+                      <FormCard
+                        key={form.id}
+                        form={form}
+                        onFormClick={handleFormClick}
+                        onExport={exportResponses}
+                        onDelete={deleteForm}
+                      />
                     ))}
                   </div>
                 )}
@@ -583,37 +939,26 @@ const FormsDashboard: React.FC = () => {
 
         {viewMode === 'responses' && (
           // Modern Responses List View
-          <div className="flex flex-col h-full">
-            <div className="px-6 py-6 border-b border-border">
+          <div className="flex flex-col min-h-0">
+            <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-border flex-shrink-0">
               <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <button
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                      <Button
                       onClick={handleBackToForms}
-                      className="btn-modern btn-secondary"
+                        variant="secondary"
+                        className="px-3 py-2"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Voltar</span>
-                    </button>
+                      <span className="hidden sm:inline">Voltar</span>
+                      </Button>
                     <div>
-                      <h2 className="text-xl font-bold text-text-primary">{selectedForm?.vaga_do_form}</h2>
-                      <div className="flex items-center space-x-4 text-sm text-text-secondary mt-1">
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-3 h-3" />
-                          <span>{formResponses.length} candidatura{formResponses.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <FileText className="w-3 h-3" />
-                          <span>{formQuestions ? Object.keys(formQuestions).filter(key => {
-                            const value = formQuestions[key as keyof FormularioPergunta];
-                            return key.startsWith('q') && value && typeof value === 'string' && value.trim();
-                          }).length : 0} perguntas</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Award className="w-3 h-3" />
-                          <span>{responsesWithAnalysis.size} analisados</span>
-                        </div>
-                      </div>
+                      <h2 className="text-lg sm:text-xl font-bold text-text-primary truncate">{selectedForm?.vaga_do_form}</h2>
+                      <ResponsesHeader
+                        formResponses={formResponses}
+                        formQuestions={formQuestions}
+                        responsesWithAnalysis={responsesWithAnalysis}
+                      />
                     </div>
                   </div>
                   
@@ -621,17 +966,17 @@ const FormsDashboard: React.FC = () => {
                     href={`/formulario/${selectedForm?.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-modern btn-primary shimmer-button"
+                    className="btn-modern btn-primary shimmer-button px-3 py-2 text-sm"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>Ver Formulário</span>
+                    <span className="hidden sm:inline">Ver Formulário</span>
                   </a>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex-1 min-h-0 overflow-y-auto scroll-container smooth-scroll">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {loadingResponses ? (
                   <div className="flex items-center justify-center py-20">
                     <div className="text-center animate-fade-in">
@@ -660,115 +1005,41 @@ const FormsDashboard: React.FC = () => {
                       </a>
                     </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {formResponses.map((response, index) => (
-                      <div
-                        key={response.id}
-                        onClick={() => handleApplicantClick(response)}
-                        className="modern-card cursor-pointer group animate-fade-in hover:scale-105 transition-all duration-300"
-                        style={{ animationDelay: `${index * 0.05}s` }}
-                      >
-                        {/* Candidate Header */}
-                        <div className="flex items-center space-x-4 mb-6">
-                          <div className="avatar bg-gradient-to-br from-primary to-primary-dark">
-                            <User className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors truncate">
-                              {response.user_name}
-                            </h3>
-                            <p className="text-sm text-text-secondary truncate">
-                              {response.user_email || response.response_id}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Submission Info */}
-                        <div className="space-y-3 mb-6">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-text-secondary">Data de submissão</span>
-                            <span className="text-text-primary font-medium">
-                              {response.created_at ? new Date(response.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }) : 'N/A'}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-text-secondary">Respostas</span>
-                            <span className="text-text-primary font-medium">
-                              {Object.keys(response.answers).length} de {formQuestions ? Object.keys(formQuestions).filter(key => {
-                                const value = formQuestions[key as keyof FormularioPergunta];
-                                return key.startsWith('q') && value && typeof value === 'string' && value.trim();
-                              }).length : 0}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Status Badges */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                          {responsesWithAnalysis.has(response.response_id || '') && (
-                            <div className="status-badge status-success">
-                              <Award className="w-3 h-3" />
-                              <span>Analisado</span>
-                            </div>
-                          )}
-                          {response.cv_bucket_link && (
-                            <div className="status-badge status-info">
-                              <FileText className="w-3 h-3" />
-                              <span>CV Anexo</span>
-                            </div>
-                          )}
-                          {!responsesWithAnalysis.has(response.response_id || '') && (
-                            <div className="status-badge status-warning">
-                              <Clock className="w-3 h-3" />
-                              <span>Pendente</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 pt-4 border-t border-border">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApplicantClick(response);
-                            }}
-                            className="btn-modern btn-secondary text-xs px-3 py-2 flex-1"
-                          >
-                            <Eye className="w-3 h-3" />
-                            <span>Ver Perfil</span>
-                          </button>
-                          
-                          {responsesWithAnalysis.has(response.response_id || '') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewAnalysis(response);
-                              }}
-                              className="btn-modern btn-success text-xs px-3 py-2"
-                            >
-                              <BarChart3 className="w-3 h-3" />
-                              <span>Análise</span>
-                            </button>
-                          )}
-                          
-                          {response.cv_bucket_link && (
-                            <a
-                              href={response.cv_bucket_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="btn-modern btn-primary text-xs px-3 py-2"
-                            >
-                              <FileText className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
+                ) : formResponses.length > 20 ? (
+                  // Use virtualization for large lists
+                  <VirtualizedList
+                    items={formResponses}
+                    height={600}
+                    estimateSize={() => 300}
+                    getItemKey={(response) => `response-${response.id}`}
+                    className="w-full"
+                    renderItem={(response, index) => (
+                      <div className="px-6 pb-6">
+                        <ResponseCard
+                          key={response.id}
+                          response={response}
+                          index={index}
+                          formQuestions={formQuestions}
+                          responsesWithAnalysis={responsesWithAnalysis}
+                          onApplicantClick={handleApplicantClick}
+                          onViewAnalysis={handleViewAnalysis}
+                        />
                       </div>
+                    )}
+                  />
+                ) : (
+                  // Use regular grid for smaller lists
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {formResponses.map((response, index) => (
+                      <ResponseCard
+                        key={response.id}
+                        response={response}
+                        index={index}
+                        formQuestions={formQuestions}
+                        responsesWithAnalysis={responsesWithAnalysis}
+                        onApplicantClick={handleApplicantClick}
+                        onViewAnalysis={handleViewAnalysis}
+                      />
                     ))}
                   </div>
                 )}
@@ -779,45 +1050,45 @@ const FormsDashboard: React.FC = () => {
 
         {viewMode === 'applicant' && (
           // Modern Individual Applicant View
-          <div className="flex flex-col h-full">
-            <div className="px-6 py-6 border-b border-border">
+          <div className="flex flex-col min-h-0">
+            <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-border flex-shrink-0">
               <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start space-x-3 sm:space-x-4">
                     <button
                       onClick={handleBackToResponses}
-                      className="btn-modern btn-secondary"
+                      className="btn-modern btn-secondary px-3 py-2 flex-shrink-0"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Voltar</span>
+                      <span className="hidden sm:inline">Voltar</span>
                     </button>
-                    <div className="flex items-center space-x-4">
-                      <div className="avatar avatar-lg bg-gradient-to-br from-primary to-primary-dark">
-                        <User className="w-6 h-6" />
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="avatar bg-gradient-to-br from-primary to-primary-dark flex-shrink-0">
+                        <User className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-text-primary">{selectedApplicant?.user_name}</h2>
-                        <div className="flex items-center space-x-4 text-sm text-text-secondary mt-1">
+                      <div className="min-w-0">
+                        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-text-primary truncate">{selectedApplicant?.user_name}</h2>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-text-secondary mt-1">
                           <div className="flex items-center space-x-1">
                             <User className="w-3 h-3" />
-                            <span>{selectedApplicant?.response_id}</span>
+                            <span className="truncate">{selectedApplicant?.response_id}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-3 h-3" />
-                            <span>
+                            <span className="text-xs">
                               {selectedApplicant && selectedApplicant.created_at ? new Date(selectedApplicant.created_at).toLocaleDateString('pt-BR', {
                                 day: '2-digit',
                                 month: 'short',
-                                year: 'numeric',
+                                year: window.innerWidth > 640 ? 'numeric' : undefined,
                                 hour: '2-digit',
                                 minute: '2-digit'
                               }) : 'Data não disponível'}
                             </span>
                           </div>
                           {selectedApplicant?.user_email && (
-                            <div className="flex items-center space-x-1">
-                              <span>•</span>
-                              <span>{selectedApplicant.user_email}</span>
+                            <div className="flex items-center space-x-1 min-w-0">
+                              <span className="hidden sm:inline">•</span>
+                              <span className="truncate text-xs">{selectedApplicant.user_email}</span>
                             </div>
                           )}
                         </div>
@@ -825,25 +1096,17 @@ const FormsDashboard: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
                     {responsesWithAnalysis.has(selectedApplicant?.response_id || '') && (
-                      <button
-                        onClick={() => handleViewAnalysis(selectedApplicant!)}
-                        className="btn-modern btn-success shimmer-button"
-                      >
+                      <Button variant="success" className="shimmer-button px-3 py-2 text-sm" onClick={() => handleViewAnalysis(selectedApplicant!)}>
                         <BarChart3 className="w-4 h-4" />
-                        <span>Ver Análise IA</span>
-                      </button>
+                        <span className="hidden sm:inline">Ver Análise IA</span>
+                      </Button>
                     )}
                     {selectedApplicant?.cv_bucket_link && (
-                      <a
-                        href={selectedApplicant.cv_bucket_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-modern btn-primary"
-                      >
+                      <a href={selectedApplicant.cv_bucket_link} target="_blank" rel="noopener noreferrer" className="btn-modern btn-primary px-3 py-2 text-sm">
                         <FileText className="w-4 h-4" />
-                        <span>Baixar CV</span>
+                        <span className="hidden sm:inline">Baixar CV</span>
                       </a>
                     )}
                   </div>
@@ -851,62 +1114,16 @@ const FormsDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex-1 min-h-0 overflow-y-auto scroll-container smooth-scroll">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {formQuestions && selectedApplicant && (
                   <div className="space-y-8">
                     {/* Candidate Summary */}
-                    <div className="modern-card">
-                      <div className="flex items-center space-x-3 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                        <h3 className="text-xl font-bold text-text-primary">Resumo da Candidatura</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-primary mb-1">
-                            {Object.keys(selectedApplicant.answers).length}
-                          </div>
-                          <div className="text-sm text-text-secondary uppercase tracking-wide">
-                            Respostas Enviadas
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-secondary mb-1">
-                            {formQuestions ? Object.keys(formQuestions).filter(key => {
-                              const value = formQuestions[key as keyof FormularioPergunta];
-                              return key.startsWith('q') && value && typeof value === 'string' && value.trim();
-                            }).length : 0}
-                          </div>
-                          <div className="text-sm text-text-secondary uppercase tracking-wide">
-                            Perguntas Totais
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className={`text-2xl font-bold mb-1 ${
-                            responsesWithAnalysis.has(selectedApplicant.response_id || '') ? 'text-success' : 'text-warning'
-                          }`}>
-                            {responsesWithAnalysis.has(selectedApplicant.response_id || '') ? '✓' : '...'}
-                          </div>
-                          <div className="text-sm text-text-secondary uppercase tracking-wide">
-                            Status Análise
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {selectedApplicant?.cv_bucket_link && (
-                        <div className="mt-6 pt-6 border-t border-border">
-                          <div className="flex items-center justify-center">
-                            <div className="status-badge status-success">
-                              <FileText className="w-3 h-3" />
-                              <span>Currículo Anexado</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <ApplicantSummary
+                      selectedApplicant={selectedApplicant}
+                      formQuestions={formQuestions}
+                      responsesWithAnalysis={responsesWithAnalysis}
+                    />
 
                     {/* Q&A Section */}
                     <div className="space-y-6">
@@ -917,39 +1134,10 @@ const FormsDashboard: React.FC = () => {
                         <h3 className="text-xl font-bold text-text-primary">Respostas Detalhadas</h3>
                       </div>
                       
-                      {Object.keys(selectedApplicant.answers).map((answerKey, index) => {
-                        const questionNumber = answerKey.replace('a', '');
-                        const questionKey = `q${questionNumber}` as keyof FormularioPergunta;
-                        const question = formQuestions[questionKey];
-                        
-                        if (!question || typeof question !== 'string') return null;
-                        
-                        return (
-                          <div 
-                            key={answerKey} 
-                            className="modern-card animate-fade-in"
-                            style={{ animationDelay: `${index * 0.05}s` }}
-                          >
-                            <div className="flex items-start space-x-4">
-                              <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-bold text-primary">
-                                  {questionNumber}
-                                </span>
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="text-lg font-semibold text-text-primary mb-4 leading-relaxed">
-                                  {question}
-                                </h4>
-                                <div className="bg-surface p-4 rounded-lg border-l-4 border-primary">
-                                  <p className="text-text-primary leading-relaxed whitespace-pre-wrap">
-                                    {selectedApplicant.answers[answerKey]}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <AnswersList
+                        answers={selectedApplicant.answers}
+                        formQuestions={formQuestions}
+                      />
                     </div>
                   </div>
                 )}
@@ -993,7 +1181,7 @@ const FormsDashboard: React.FC = () => {
                   {/* Hero Decision Card */}
                   <div className="modern-card mb-8 text-center bg-gradient-to-br from-surface-raised to-surface-elevated border-2">
                     <div className="flex flex-col items-center space-y-6">
-                      <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold animate-pulse-glow ${
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${
                         candidateAnalysis.decision === 'HIRE' ? 'bg-gradient-to-br from-success to-success-light text-white' :
                         candidateAnalysis.decision === 'INTERVIEW' ? 'bg-gradient-to-br from-warning to-warning-light text-white' :
                         'bg-gradient-to-br from-error to-error-light text-white'
@@ -1191,7 +1379,7 @@ const FormsDashboard: React.FC = () => {
                   {candidateAnalysis.red_flags.length > 0 && (
                     <div className="modern-card border-error/30 bg-gradient-to-br from-error/10 to-transparent mb-8">
                       <div className="flex items-center space-x-3 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-error to-error-light rounded-xl flex items-center justify-center animate-pulse-glow">
+                        <div className="w-10 h-10 bg-gradient-to-br from-error to-error-light rounded-xl flex items-center justify-center">
                           <AlertCircle className="w-5 h-5 text-white" />
                         </div>
                         <h3 className="text-xl font-bold text-text-primary">Red Flags Críticos</h3>
