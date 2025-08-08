@@ -36,22 +36,32 @@ export function Filters({ searchTerm, onSearchChange, filterStatus, onFilterChan
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center lg:flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Select value={filterStatus} onChange={(e) => onFilterChange(e.target.value as FilterStatus)} aria-label="Filtrar por status" className="text-sm text-foreground min-w-[120px]">
-                <option value="all" className="text-foreground bg-background">Todos</option>
-                <option value="active" className="text-foreground bg-background">Ativos</option>
-                <option value="draft" className="text-foreground bg-background">Rascunhos</option>
-                <option value="closed" className="text-foreground bg-background">Fechados</option>
+              <Filter className="w-4 h-4 text-text-secondary" />
+              <Select 
+                value={filterStatus} 
+                onChange={(e) => onFilterChange(e.target.value as FilterStatus)} 
+                aria-label="Filtrar por status" 
+                className="select-filter min-w-[120px] text-sm font-medium"
+              >
+                <option value="all" className="text-text-primary bg-surface-raised">Todos</option>
+                <option value="active" className="text-text-primary bg-surface-raised">Ativos</option>
+                <option value="draft" className="text-text-primary bg-surface-raised">Rascunhos</option>
+                <option value="closed" className="text-text-primary bg-surface-raised">Fechados</option>
               </Select>
             </div>
             
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Ordenar:</span>
-              <Select value={sortBy} onChange={(e) => onSortChange(e.target.value as SortBy)} aria-label="Ordenar por" className="text-sm text-foreground min-w-[120px]">
-                <option value="date" className="text-foreground bg-background">Data</option>
-                <option value="name" className="text-foreground bg-background">Nome</option>
-                <option value="candidates" className="text-foreground bg-background">Candidatos</option>
-                <option value="score" className="text-foreground bg-background">Score</option>
+              <span className="text-sm text-text-secondary whitespace-nowrap font-medium">Ordenar:</span>
+              <Select 
+                value={sortBy} 
+                onChange={(e) => onSortChange(e.target.value as SortBy)} 
+                aria-label="Ordenar por" 
+                className="select-filter min-w-[120px] text-sm font-medium"
+              >
+                <option value="date" className="text-text-primary bg-surface-raised">Data</option>
+                <option value="name" className="text-text-primary bg-surface-raised">Nome</option>
+                <option value="candidates" className="text-text-primary bg-surface-raised">Candidatos</option>
+                <option value="score" className="text-text-primary bg-surface-raised">Score</option>
               </Select>
             </div>
           </div>
