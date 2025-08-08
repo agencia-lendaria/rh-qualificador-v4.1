@@ -476,7 +476,7 @@ const FormsDashboard: React.FC = () => {
             }
 
             // Determina status baseado na quantidade de perguntas
-            const status = questionCount === 0 ? 'draft' : 'active';
+            const status: 'active' | 'draft' | 'closed' = questionCount === 0 ? 'draft' : 'active';
             
             // Conta candidatos
             const candidateCount = candidateCountResult.count || 0;
