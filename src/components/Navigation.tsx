@@ -19,7 +19,7 @@ function Navigation({ activeTab, onTabChange }: NavigationProps) {
             <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-[color:#10b981] rounded-full border-2 border-background" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent truncate">HR Intelligence</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-white truncate">HR Intelligence</h1>
             <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Sistema Inteligente de Recrutamento</p>
           </div>
         </div>
