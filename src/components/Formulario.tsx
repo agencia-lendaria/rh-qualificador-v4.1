@@ -78,16 +78,47 @@ const Formulario: React.FC = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'text/plain'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        alert('Por favor, envie apenas arquivos PDF, DOC, DOCX ou TXT.');
+        event.target.value = '';
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        alert('O arquivo deve ter no máximo 5MB.');
+        event.target.value = '';
+        return;
+      }
+      
       setCurriculumFile(file);
     }
   };
 
   const uploadCurriculum = async (file: File): Promise<string | null> => {
     try {
-      const fileName = `curriculum_${Date.now()}_${file.name}`;
+      // Sanitize filename and add timestamp
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `curriculum_${timestamp}_${sanitizedName}`;
+      
+      // Upload with proper content type and upsert option
       const { error } = await supabase.storage
         .from('curriculum-uploads')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (error) {
         console.error('Error uploading curriculum:', error);
@@ -127,7 +158,7 @@ const Formulario: React.FC = () => {
 
       const answersData: Record<string, string> = {}
       Object.keys(values).forEach((key) => {
-        if (key !== 'user_name' && key !== 'user_email') {
+        if (key !== 'user_name' && key !== 'user_email' && key !== 'user_phone') {
           const val = values[key as keyof FormData]
           if (typeof val === 'string') answersData[key] = val
         }
@@ -139,6 +170,7 @@ const Formulario: React.FC = () => {
         user_name: values.user_name,
         user_email: values.user_email || null,
         user_phone: values.user_phone || null,
+        cv_bucket_link: curriculumUrl || null,
         ...answersData
       }
 
@@ -152,24 +184,7 @@ const Formulario: React.FC = () => {
         return
       }
 
-      if (curriculumUrl) {
-        const replyData = {
-          curriculum_url: curriculumUrl,
-          user_name: values.user_name,
-          user_email: values.user_email || null,
-          user_phone: values.user_phone || null,
-          form_id: formularioNome.id,
-          submitted_at: new Date().toISOString()
-        }
-
-        const { error: replyError } = await supabase
-          .from('reply')
-          .insert([replyData])
-
-        if (replyError) {
-          console.error('Error storing curriculum link:', replyError)
-        }
-      }
+      // Curriculum link is now saved directly in formularios_respostas table
 
       setSubmitStatus('success')
       setTimeout(() => {
