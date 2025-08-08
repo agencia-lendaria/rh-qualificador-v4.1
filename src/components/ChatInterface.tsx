@@ -544,7 +544,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Modern Input Area */}
       <div className="border-t border-border bg-surface/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-end space-x-2 sm:space-x-3">
+          <div className="flex items-start space-x-2 sm:space-x-3">
             {/* Input Container */}
             <div className="flex-1 relative">
               <textarea
@@ -578,7 +578,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             
             {/* Send Button */}
-            <Button onClick={handleSendMessage} disabled={!inputText.trim() || isLoading} className="p-2.5 sm:p-3 rounded-xl flex-shrink-0">
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={!inputText.trim() || isLoading} 
+              className="btn-modern btn-primary shimmer-button min-h-[48px] sm:min-h-[52px] px-3 sm:px-4 rounded-xl flex-shrink-0"
+            >
               <Send className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'opacity-50' : ''}`} />
             </Button>
           </div>

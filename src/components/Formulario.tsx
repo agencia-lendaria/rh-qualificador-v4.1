@@ -232,14 +232,23 @@ const Formulario: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gradient-to-r from-background to-surface border-b border-border px-4 sm:px-6 py-4 sm:py-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Formulário de Candidatura</h1>
-              <p className="text-sm sm:text-base text-primary font-medium bg-primary/10 px-3 py-1.5 rounded-lg inline-block">
+      <div className="bg-gradient-to-r from-background to-surface border-b border-border px-4 sm:px-6 py-6 sm:py-8">
+        <div className="max-w-2xl mx-auto text-center animate-fade-in">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-4">
+            Formulário de Candidatura
+          </h1>
+          <div className="mb-6">
+            <p className="text-text-secondary text-base sm:text-lg mb-4 leading-relaxed">
+              Complete as informações abaixo para se candidatar à vaga. Suas respostas nos ajudarão a avaliar seu perfil profissional.
+            </p>
+            <div className="inline-flex items-center bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl">
+              <div className="w-2 h-2 bg-primary rounded-full mr-3 animate-pulse"></div>
+              <span className="text-primary font-semibold text-sm sm:text-base">
                 {formularioNome.vaga_do_form}
-              </p>
+              </span>
             </div>
           </div>
         </div>
@@ -297,22 +306,24 @@ const Formulario: React.FC = () => {
                       
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">Telefone</label>
-                        <PhoneInput
-                          value={phoneValue}
-                          onChange={(value) => {
-                            setPhoneValue(value);
-                            form.setValue('user_phone', value || '');
-                          }}
-                          defaultCountry="BR"
-                          placeholder="Digite seu telefone"
-                          className="text-sm"
-                          style={{
-                            '--PhoneInput-color': 'rgb(var(--foreground))',
-                            '--PhoneInputInternationalIconPhone-opacity': '0.8',
-                            '--PhoneInputInternationalIconGlobe-opacity': '0.65',
-                            '--PhoneInputCountrySelectArrow-opacity': '0.45'
-                          } as React.CSSProperties}
-                        />
+                        <div className="phone-input-container">
+                          <PhoneInput
+                            value={phoneValue}
+                            onChange={(value) => {
+                              setPhoneValue(value);
+                              form.setValue('user_phone', value || '');
+                            }}
+                            defaultCountry="BR"
+                            placeholder="Digite seu DDD + telefone"
+                            className="text-sm"
+                            style={{
+                              '--PhoneInput-color': 'rgb(var(--foreground))',
+                              '--PhoneInputInternationalIconPhone-opacity': '0.8',
+                              '--PhoneInputInternationalIconGlobe-opacity': '0.65',
+                              '--PhoneInputCountrySelectArrow-opacity': '0.45'
+                            } as React.CSSProperties}
+                          />
+                        </div>
                         {form.formState.errors.user_phone && (
                           <p className="mt-1 text-xs text-destructive">{form.formState.errors.user_phone.message}</p>
                         )}
@@ -381,7 +392,11 @@ const Formulario: React.FC = () => {
                 <Button 
                   type="submit" 
                   disabled={submitting || !form.getValues('user_name')} 
-                  className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base"
+                  className={`btn-modern btn-primary shimmer-button w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base ${
+                    submitting || !form.getValues('user_name')
+                      ? 'opacity-50 cursor-not-allowed'
+                      : ''
+                  }`}
                 >
                   {submitting ? (
                     <>

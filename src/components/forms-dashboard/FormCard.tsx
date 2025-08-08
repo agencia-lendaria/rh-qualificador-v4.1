@@ -121,7 +121,7 @@ export function FormCard({ form, onFormClick, onExport, onDelete }: FormCardProp
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
-            className="text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium bg-primary/5 hover:bg-primary/10 border-primary/30 text-primary hover:text-primary shadow-sm hover:shadow-md transition-all duration-200"
+            className="btn-modern btn-primary shimmer-button text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium"
             onClick={handleViewForm}
           >
             <ExternalLink className="w-3 h-3 mr-1" />
@@ -131,7 +131,7 @@ export function FormCard({ form, onFormClick, onExport, onDelete }: FormCardProp
           {form.candidateCount > 0 && (
             <Button
               variant="outline"
-              className="text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium bg-success/10 hover:bg-success/20 border-success/40 text-success hover:text-success-dark shadow-sm hover:shadow-md transition-all duration-200"
+              className="btn-modern btn-success shimmer-button text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium"
               onClick={handleExport}
             >
               <Download className="w-3 h-3 mr-1" />
@@ -142,7 +142,7 @@ export function FormCard({ form, onFormClick, onExport, onDelete }: FormCardProp
         
         <Button
           variant="outline"
-          className="text-xs px-2 py-1.5 bg-error/5 hover:bg-error/10 border-error/30 text-error hover:text-error-dark shadow-sm hover:shadow-md transition-all duration-200"
+          className="btn-modern btn-error shimmer-button text-xs px-2 py-1.5"
           onClick={handleDelete}
         >
           <Download className="w-3 h-3" />

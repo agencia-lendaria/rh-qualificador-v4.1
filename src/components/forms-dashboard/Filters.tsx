@@ -19,7 +19,7 @@ export function Filters({ searchTerm, onSearchChange, filterStatus, onFilterChan
   return (
     <div className="p-4 sm:p-6 border-b border-border">
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-0 sm:items-center sm:space-x-4">
-        <div className="flex-1 relative">
+        <div className="sm:w-80 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             type="text"

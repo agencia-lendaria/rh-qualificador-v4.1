@@ -1255,36 +1255,74 @@ body {
 }
 
 /* PhoneInput Styles */
-.PhoneInput {
+.phone-input-container {
+  position: relative;
+  border: 1px solid #000;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--background));
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  border: 1px solid rgb(var(--border));
-  border-radius: 0.5rem;
-  background-color: rgb(var(--background));
-  transition: border-color 0.2s ease;
 }
-.PhoneInput:focus-within {
-  border-color: rgb(var(--primary));
-  outline: none;
-  box-shadow: 0 0 0 3px rgb(var(--primary) / 0.1);
+.phone-input-container:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
 }
 .PhoneInputCountry {
   margin-right: 0.5rem;
+  border-right: 1px solid hsl(var(--border));
+  padding-right: 0.5rem;
 }
 .PhoneInputCountrySelect {
   border: none;
   background: transparent;
-  color: rgb(var(--foreground));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+}
+.PhoneInputCountrySelect:focus {
+  outline: none;
 }
 .PhoneInputInput {
   border: none;
   outline: none;
   background: transparent;
-  color: rgb(var(--foreground));
+  color: hsl(var(--foreground));
   font-size: 0.875rem;
   flex: 1;
+  padding: 0;
+  margin-left: 0.5rem;
 }
 .PhoneInputInput::placeholder {
-  color: rgb(var(--text-muted));
+  color: hsl(var(--muted-foreground));
+}
+.PhoneInputInput:focus {
+  outline: none;
+}
+
+/* Custom Submit Button Styles */
+.submit-button-active {
+  background: linear-gradient(to right, hsl(var(--primary)), hsl(var(--secondary))) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.submit-button-active:hover {
+  background: linear-gradient(to right, hsl(var(--primary-dark, var(--primary))), hsl(var(--secondary-dark, var(--secondary)))) !important;
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+}
+
+.submit-button-disabled {
+  background: linear-gradient(to right, hsl(var(--muted)), hsl(var(--muted-foreground)) / 0.5) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  cursor: not-allowed !important;
+  border: none !important;
 }
