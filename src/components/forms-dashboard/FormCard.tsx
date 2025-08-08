@@ -142,7 +142,8 @@ export function FormCard({ form, onFormClick, onExport, onDelete }: FormCardProp
         
         <Button
           variant="outline"
-          className="btn-modern btn-error shimmer-button text-xs px-2 py-1.5"
+          className="btn-modern shimmer-button text-xs px-2 py-1.5"
+          style={{ backgroundColor: '#2D3748', color: 'white', borderColor: '#2D3748' }}
           onClick={handleDelete}
         >
           <Download className="w-3 h-3" />
