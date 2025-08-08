@@ -68,6 +68,6 @@ Este é um sistema completo para geração de job descriptions e formulários de
 ## Variáveis de Ambiente
 
 ```env
-VITE_SUPABASE_URL=https://tscrxukrkwnurkzqfjty.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_URL=https://tscrabcd.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhb...
 ``` 
