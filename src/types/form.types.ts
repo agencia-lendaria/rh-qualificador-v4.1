@@ -32,6 +32,7 @@ export interface FormularioResposta {
   response_id: string
   user_name: string
   user_email: string | null
+  user_phone?: string | null
   created_at: string
   cv_bucket_link?: string | null
   a1?: string | null
@@ -62,6 +63,7 @@ export interface ProcessedResponse {
   response_id: string
   user_name: string
   user_email: string | null
+  user_phone?: string | null
   created_at: string
   cv_bucket_link?: string | null
   answers: Record<string, string>
@@ -72,6 +74,7 @@ export const formSubmissionSchema = z
   .object({
     user_name: z.string().min(1, 'Nome é obrigatório'),
     user_email: z.string().email('Email inválido').optional().or(z.literal('')),
+    user_phone: z.string().optional().or(z.literal('')),
   })
   .passthrough()
 

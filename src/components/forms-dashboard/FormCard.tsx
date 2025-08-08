@@ -120,29 +120,29 @@ export function FormCard({ form, onFormClick, onExport, onDelete }: FormCardProp
       <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-border">
         <div className="flex items-center space-x-2">
           <Button
-            variant="secondary"
-            className="text-xs px-2 sm:px-3 py-1.5 sm:py-2"
+            variant="outline"
+            className="text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium bg-primary/5 hover:bg-primary/10 border-primary/30 text-primary hover:text-primary shadow-sm hover:shadow-md transition-all duration-200"
             onClick={handleViewForm}
           >
-            <ExternalLink className="w-3 h-3" />
-            <span className="hidden sm:inline">Visualizar</span>
+            <ExternalLink className="w-3 h-3 mr-1" />
+            <span>Visualizar</span>
           </Button>
 
           {form.candidateCount > 0 && (
             <Button
-              variant="success"
-              className="text-xs px-2 sm:px-3 py-1.5 sm:py-2"
+              variant="outline"
+              className="text-xs px-3 sm:px-4 py-2 sm:py-2.5 font-medium bg-success/10 hover:bg-success/20 border-success/40 text-success hover:text-success-dark shadow-sm hover:shadow-md transition-all duration-200"
               onClick={handleExport}
             >
-              <Download className="w-3 h-3" />
-              <span className="hidden sm:inline">Exportar</span>
+              <Download className="w-3 h-3 mr-1" />
+              <span>Exportar</span>
             </Button>
           )}
         </div>
         
         <Button
-          variant="secondary"
-          className="text-xs px-2 py-1.5 text-error hover:bg-error/10"
+          variant="outline"
+          className="text-xs px-2 py-1.5 bg-error/5 hover:bg-error/10 border-error/30 text-error hover:text-error-dark shadow-sm hover:shadow-md transition-all duration-200"
           onClick={handleDelete}
         >
           <Download className="w-3 h-3" />

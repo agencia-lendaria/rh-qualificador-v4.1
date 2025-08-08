@@ -1253,3 +1253,38 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* PhoneInput Styles */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(var(--border));
+  border-radius: 0.5rem;
+  background-color: rgb(var(--background));
+  transition: border-color 0.2s ease;
+}
+.PhoneInput:focus-within {
+  border-color: rgb(var(--primary));
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--primary) / 0.1);
+}
+.PhoneInputCountry {
+  margin-right: 0.5rem;
+}
+.PhoneInputCountrySelect {
+  border: none;
+  background: transparent;
+  color: rgb(var(--foreground));
+}
+.PhoneInputInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgb(var(--foreground));
+  font-size: 0.875rem;
+  flex: 1;
+}
+.PhoneInputInput::placeholder {
+  color: rgb(var(--text-muted));
+}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Upload, User, Mail, Send, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, User, Mail, Send, CheckCircle, AlertCircle, Phone } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
 import { supabase } from '../lib/supabase'
 import { FormularioNome, FormularioPergunta, FormSubmissionData, SubmitStatus, formSubmissionSchema } from '@/types'
 import { Input } from '@/components/ui/input'
@@ -19,8 +21,9 @@ const Formulario: React.FC = () => {
   const [formularioPerguntas, setFormularioPerguntas] = useState<FormularioPergunta | null>(null);
   const form = useForm<FormData>({
     resolver: zodResolver(formSubmissionSchema),
-    defaultValues: { user_name: '', user_email: '' }
+    defaultValues: { user_name: '', user_email: '', user_phone: '' }
   })
+  const [phoneValue, setPhoneValue] = useState<string | undefined>('')
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
@@ -135,6 +138,7 @@ const Formulario: React.FC = () => {
         response_id: responseId,
         user_name: values.user_name,
         user_email: values.user_email || null,
+        user_phone: values.user_phone || null,
         ...answersData
       }
 
@@ -153,6 +157,7 @@ const Formulario: React.FC = () => {
           curriculum_url: curriculumUrl,
           user_name: values.user_name,
           user_email: values.user_email || null,
+          user_phone: values.user_phone || null,
           form_id: formularioNome.id,
           submitted_at: new Date().toISOString()
         }
@@ -227,11 +232,15 @@ const Formulario: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <div className="glass-effect border-b border-border px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">Formulário de Candidatura</h1>
-            <p className="text-xs sm:text-sm text-text-secondary truncate">{formularioNome.vaga_do_form}</p>
+      <div className="bg-gradient-to-r from-background to-surface border-b border-border px-4 sm:px-6 py-4 sm:py-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Formulário de Candidatura</h1>
+              <p className="text-sm sm:text-base text-primary font-medium bg-primary/10 px-3 py-1.5 rounded-lg inline-block">
+                {formularioNome.vaga_do_form}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -256,7 +265,7 @@ const Formulario: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">Nome Completo *</label>
                       <Input
@@ -270,18 +279,44 @@ const Formulario: React.FC = () => {
                         <p className="mt-1 text-xs text-destructive">{form.formState.errors.user_name.message}</p>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-                      <Input
-                        type="email"
-                        {...form.register('user_email')}
-                        placeholder="seu@email.com"
-                        hasError={!!form.formState.errors.user_email}
-                        className="text-sm"
-                      />
-                      {form.formState.errors.user_email && (
-                        <p className="mt-1 text-xs text-destructive">{form.formState.errors.user_email.message}</p>
-                      )}
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                        <Input
+                          type="email"
+                          {...form.register('user_email')}
+                          placeholder="seu@email.com"
+                          hasError={!!form.formState.errors.user_email}
+                          className="text-sm"
+                        />
+                        {form.formState.errors.user_email && (
+                          <p className="mt-1 text-xs text-destructive">{form.formState.errors.user_email.message}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Telefone</label>
+                        <PhoneInput
+                          value={phoneValue}
+                          onChange={(value) => {
+                            setPhoneValue(value);
+                            form.setValue('user_phone', value || '');
+                          }}
+                          defaultCountry="BR"
+                          placeholder="Digite seu telefone"
+                          className="text-sm"
+                          style={{
+                            '--PhoneInput-color': 'rgb(var(--foreground))',
+                            '--PhoneInputInternationalIconPhone-opacity': '0.8',
+                            '--PhoneInputInternationalIconGlobe-opacity': '0.65',
+                            '--PhoneInputCountrySelectArrow-opacity': '0.45'
+                          } as React.CSSProperties}
+                        />
+                        {form.formState.errors.user_phone && (
+                          <p className="mt-1 text-xs text-destructive">{form.formState.errors.user_phone.message}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
