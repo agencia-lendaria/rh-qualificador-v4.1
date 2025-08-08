@@ -34,9 +34,6 @@ function Navigation({ activeTab, onTabChange }: NavigationProps) {
           >
             <div className="relative">
               <MessageCircle className="w-4 h-4" />
-              {activeTab === 'chat' && (
-                <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white" />
-              )}
             </div>
             <span className="hidden sm:block">Job Description</span>
           </Button>

@@ -10,7 +10,7 @@ export function Select({ className, hasError, children, ...props }: NativeSelect
   return (
     <select
       className={cn(
-        'flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background',
+        'flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         'disabled:cursor-not-allowed disabled:opacity-50',
         hasError ? 'border-destructive focus-visible:ring-destructive' : 'border-input',
