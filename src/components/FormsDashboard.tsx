@@ -1148,26 +1148,32 @@ const FormsDashboard: React.FC = () => {
 
         {viewMode === 'analysis' && (
           // Analysis View
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-6 border-b border-brand-purple/20 flex-shrink-0">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={handleBackToResponses}
-                  className="flex items-center space-x-2 px-4 py-2 bg-brand-purple/20 text-brand-purple rounded-lg hover:bg-brand-purple/30 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Voltar</span>
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Análise do Candidato</h2>
-                  <p className="text-sm text-brand-gray">
-                    {selectedApplicant?.user_name} • {selectedApplicant?.response_id}
-                  </p>
+          <div className="flex flex-col min-h-0">
+            <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-border flex-shrink-0">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <Button
+                      onClick={handleBackToResponses}
+                      variant="secondary"
+                      className="px-3 py-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Voltar</span>
+                    </Button>
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-bold text-text-primary">Análise do Candidato</h2>
+                      <p className="text-sm text-text-secondary">
+                        {selectedApplicant?.user_name} • {selectedApplicant?.response_id}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 pb-20">
+            <div className="flex-1 min-h-0 overflow-y-auto scroll-container smooth-scroll">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
               {loadingAnalysis ? (
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center animate-fade-in">
@@ -1178,87 +1184,111 @@ const FormsDashboard: React.FC = () => {
                 </div>
               ) : candidateAnalysis ? (
                 <div className="space-y-6">
-                  {/* Hero Decision Card */}
-                  <div className="modern-card mb-8 text-center bg-gradient-to-br from-surface-raised to-surface-elevated border-2">
-                    <div className="flex flex-col items-center space-y-6">
-                      <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${
-                        candidateAnalysis.decision === 'HIRE' ? 'bg-gradient-to-br from-success to-success-light text-white' :
-                        candidateAnalysis.decision === 'INTERVIEW' ? 'bg-gradient-to-br from-warning to-warning-light text-white' :
-                        'bg-gradient-to-br from-error to-error-light text-white'
-                      }`}>
-                        {candidateAnalysis.decision === 'HIRE' ? '✓' :
-                         candidateAnalysis.decision === 'INTERVIEW' ? '?' :
-                         '✗'}
-                      </div>
-                      
-                      <div>
-                        <h2 className="text-3xl font-bold text-text-primary mb-2">
-                          {candidateAnalysis.decision === 'HIRE' ? 'RECOMENDADO PARA CONTRATAÇÃO' :
-                           candidateAnalysis.decision === 'INTERVIEW' ? 'CANDIDATO PARA ENTREVISTA' :
-                           'NÃO RECOMENDADO'}
-                        </h2>
+                  {/* Hero Decision Card - Two Column Layout */}
+                  <div className="modern-card bg-gradient-to-br from-surface-raised to-surface-elevated border-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Left Column - Reasoning Text */}
+                      <div className="flex flex-col justify-center">
                         {candidateAnalysis.reasoning && (
-                          <p className="text-text-secondary max-w-2xl mx-auto leading-relaxed">
-                            {candidateAnalysis.reasoning}
-                          </p>
+                          <div className="bg-surface p-6 rounded-lg border-l-4 border-primary">
+                            <p className="text-text-primary leading-relaxed text-base">
+                              {candidateAnalysis.reasoning}
+                            </p>
+                          </div>
                         )}
                       </div>
-                      
-                      {/* Overall Score Circle */}
-                      {candidateAnalysis.overall_score !== null && (
-                        <div className="relative">
-                          <div className="circular-progress">
-                            <svg className="w-24 h-24">
-                              <circle
-                                cx="48"
-                                cy="48"
-                                r="40"
-                                className="progress-bg"
-                              />
-                              <circle
-                                cx="48"
-                                cy="48"
-                                r="40"
-                                className="progress-fill"
-                                strokeDasharray={`${2 * Math.PI * 40}`}
-                                strokeDashoffset={`${2 * Math.PI * 40 * (1 - candidateAnalysis.overall_score / 100)}`}
-                              />
-                            </svg>
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-primary">{candidateAnalysis.overall_score}</div>
-                              <div className="text-xs text-text-muted uppercase tracking-wider">Score Geral</div>
+
+                      {/* Right Column - Decision Status and Score */}
+                      <div className="flex flex-col items-center justify-center space-y-6">
+                        {/* Decision Status */}
+                        <div className="text-center">
+                          <div className="flex items-center justify-center space-x-3 mb-4">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${
+                              candidateAnalysis.decision === 'HIRE' ? 'bg-gradient-to-br from-success to-success-light text-white' :
+                              candidateAnalysis.decision === 'INTERVIEW' ? 'bg-gradient-to-br from-warning to-warning-light text-white' :
+                              'bg-gradient-to-br from-error to-error-light text-white'
+                            }`}>
+                              {candidateAnalysis.decision === 'HIRE' ? '✓' :
+                               candidateAnalysis.decision === 'INTERVIEW' ? '?' :
+                               '✗'}
+                            </div>
+                            <div className={`status-badge ${
+                              candidateAnalysis.confidence_level === 'HIGH' ? 'status-success' :
+                              candidateAnalysis.confidence_level === 'MEDIUM' ? 'status-warning' :
+                              'status-error'
+                            }`}>
+                              <Target className="w-3 h-3" />
+                              <span>Confiança {candidateAnalysis.confidence_level === 'HIGH' ? 'Alta' :
+                                 candidateAnalysis.confidence_level === 'MEDIUM' ? 'Média' : 'Baixa'}</span>
                             </div>
                           </div>
+                          <h2 className="text-2xl lg:text-3xl font-bold text-text-primary mb-6">
+                            {candidateAnalysis.decision === 'HIRE' ? 'RECOMENDADO' :
+                             candidateAnalysis.decision === 'INTERVIEW' ? 'PARA ENTREVISTA' :
+                             'NÃO RECOMENDADO'}
+                          </h2>
                         </div>
-                      )}
-                      
-                      {/* Confidence Level */}
-                      <div className={`status-badge ${
-                        candidateAnalysis.confidence_level === 'HIGH' ? 'status-success' :
-                        candidateAnalysis.confidence_level === 'MEDIUM' ? 'status-warning' :
-                        'status-error'
-                      }`}>
-                        <Target className="w-3 h-3" />
-                        <span>Confiança {candidateAnalysis.confidence_level === 'HIGH' ? 'Alta' :
-                           candidateAnalysis.confidence_level === 'MEDIUM' ? 'Média' : 'Baixa'}</span>
+
+                        {/* Overall Score Circle */}
+                        {candidateAnalysis.overall_score !== null && (
+                          <div className="relative w-32 h-32">
+                            <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+                              <circle
+                                cx="60"
+                                cy="60"
+                                r="52"
+                                fill="none"
+                                stroke="#374151"
+                                strokeWidth="6"
+                                opacity="0.2"
+                              />
+                              <circle
+                                cx="60"
+                                cy="60"
+                                r="52"
+                                fill="none"
+                                stroke="url(#progressGradient)"
+                                strokeWidth="6"
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out"
+                                strokeDasharray={`${2 * Math.PI * 52}`}
+                                strokeDashoffset={`${2 * Math.PI * 52 * (1 - candidateAnalysis.overall_score / 100)}`}
+                              />
+                              <defs>
+                                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#8b5cf6" />
+                                  <stop offset="100%" stopColor="#3b82f6" />
+                                </linearGradient>
+                              </defs>
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-primary">{candidateAnalysis.overall_score}</div>
+                                <div className="text-xs text-text-muted uppercase tracking-wider">Score Geral</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Detailed Scores Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {/* Detailed Scores Grid - More Compact */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     {candidateAnalysis.technical_score !== null && (
-                      <div className="modern-card text-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center mx-auto mb-4">
-                          <Zap className="w-6 h-6 text-white" />
+                      <div className="modern-card text-center py-4">
+                        <div className="flex items-center justify-center space-x-2 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-primary">{candidateAnalysis.technical_score}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">Técnico</div>
+                          </div>
                         </div>
-                        <div className="text-2xl font-bold text-primary mb-1">{candidateAnalysis.technical_score}</div>
-                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Técnico</div>
-                        <div className="progress-bar">
+                        <div className="progress-bar h-2">
                           <div 
-                            className="progress-fill bg-gradient-to-r from-primary to-primary-light"
+                            className="progress-fill bg-gradient-to-r from-primary to-primary-light h-full"
                             style={{ width: `${candidateAnalysis.technical_score}%` }}
                           ></div>
                         </div>
@@ -1266,15 +1296,19 @@ const FormsDashboard: React.FC = () => {
                     )}
                     
                     {candidateAnalysis.behavioral_score !== null && (
-                      <div className="modern-card text-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl flex items-center justify-center mx-auto mb-4">
-                          <User className="w-6 h-6 text-white" />
+                      <div className="modern-card text-center py-4">
+                        <div className="flex items-center justify-center space-x-2 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-secondary to-secondary-dark rounded-lg flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-secondary">{candidateAnalysis.behavioral_score}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">Comportamental</div>
+                          </div>
                         </div>
-                        <div className="text-2xl font-bold text-secondary mb-1">{candidateAnalysis.behavioral_score}</div>
-                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Comportamental</div>
-                        <div className="progress-bar">
+                        <div className="progress-bar h-2">
                           <div 
-                            className="progress-fill bg-gradient-to-r from-secondary to-secondary-light"
+                            className="progress-fill bg-gradient-to-r from-secondary to-secondary-light h-full"
                             style={{ width: `${candidateAnalysis.behavioral_score}%` }}
                           ></div>
                         </div>
@@ -1282,15 +1316,19 @@ const FormsDashboard: React.FC = () => {
                     )}
                     
                     {candidateAnalysis.cultural_fit_score !== null && (
-                      <div className="modern-card text-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-success to-success-light rounded-xl flex items-center justify-center mx-auto mb-4">
-                          <Users className="w-6 h-6 text-white" />
+                      <div className="modern-card text-center py-4">
+                        <div className="flex items-center justify-center space-x-2 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-success to-success-light rounded-lg flex items-center justify-center">
+                            <Users className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-success">{candidateAnalysis.cultural_fit_score}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">Fit Cultural</div>
+                          </div>
                         </div>
-                        <div className="text-2xl font-bold text-success mb-1">{candidateAnalysis.cultural_fit_score}</div>
-                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Fit Cultural</div>
-                        <div className="progress-bar">
+                        <div className="progress-bar h-2">
                           <div 
-                            className="progress-fill bg-gradient-to-r from-success to-success-light"
+                            className="progress-fill bg-gradient-to-r from-success to-success-light h-full"
                             style={{ width: `${candidateAnalysis.cultural_fit_score}%` }}
                           ></div>
                         </div>
@@ -1298,15 +1336,19 @@ const FormsDashboard: React.FC = () => {
                     )}
                     
                     {candidateAnalysis.experience_score !== null && (
-                      <div className="modern-card text-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-warning to-warning-light rounded-xl flex items-center justify-center mx-auto mb-4">
-                          <Award className="w-6 h-6 text-white" />
+                      <div className="modern-card text-center py-4">
+                        <div className="flex items-center justify-center space-x-2 mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-warning to-warning-light rounded-lg flex items-center justify-center">
+                            <Award className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-warning">{candidateAnalysis.experience_score}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wide">Experiência</div>
+                          </div>
                         </div>
-                        <div className="text-2xl font-bold text-warning mb-1">{candidateAnalysis.experience_score}</div>
-                        <div className="text-sm text-text-secondary mb-3 uppercase tracking-wide">Experiência</div>
-                        <div className="progress-bar">
+                        <div className="progress-bar h-2">
                           <div 
-                            className="progress-fill bg-gradient-to-r from-warning to-warning-light"
+                            className="progress-fill bg-gradient-to-r from-warning to-warning-light h-full"
                             style={{ width: `${candidateAnalysis.experience_score}%` }}
                           ></div>
                         </div>
@@ -1315,7 +1357,7 @@ const FormsDashboard: React.FC = () => {
                   </div>
 
                   {/* Insights Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                     {/* Strengths */}
                     <div className="modern-card border-success/20 bg-gradient-to-br from-success/5 to-transparent">
                       <div className="flex items-center space-x-3 mb-6">
@@ -1398,7 +1440,7 @@ const FormsDashboard: React.FC = () => {
                   )}
 
                   {/* Action Items */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Next Steps */}
                     <div className="modern-card border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
                       <div className="flex items-center space-x-3 mb-6">
@@ -1457,8 +1499,6 @@ const FormsDashboard: React.FC = () => {
                       )}
                     </div>
                   </div>
-
-
                 </div>
               ) : (
                 <div className="text-center py-20 animate-fade-in">
@@ -1475,6 +1515,7 @@ const FormsDashboard: React.FC = () => {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}
