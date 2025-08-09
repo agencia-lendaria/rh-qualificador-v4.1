@@ -176,14 +176,13 @@ const ResponseCard = React.memo<{
         </Button>
         
         {hasAnalysis && (
-          <Button
+          <button
             onClick={handleAnalysisClick}
-            variant="success"
-            className="text-xs px-3 py-2"
+            className="btn-modern btn-primary text-xs px-3 py-2"
           >
-            <BarChart3 className="w-3 h-3" />
+            <BarChart3 className="w-3 h-3 mr-1" />
             <span>Análise</span>
-          </Button>
+          </button>
         )}
         
         {response.cv_bucket_link && (
